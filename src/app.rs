@@ -4,16 +4,14 @@ use std::collections::HashMap;
 
 use crate::fl;
 use cosmic::app::{Command, Core};
-use cosmic::iced::alignment::{Horizontal, Vertical};
-use cosmic::iced::{Alignment, Length};
+use cosmic::iced::Alignment;
 use cosmic::widget::{self, icon, menu, nav_bar};
-use cosmic::{cosmic_theme, theme, Application, ApplicationExt, Apply, Element};
+use cosmic::{cosmic_theme, theme, Application, ApplicationExt, Element};
+use crate::content::{self, Content};
 
-const REPOSITORY: &str = "https://github.com/edfloreshz/cosmic-app-template";
+const REPOSITORY: &str = "https://github.com/dylf/miniature-bassoon";
 
-/// This is the struct that represents your application.
-/// It is used to define the data that will be used by your application.
-pub struct YourApp {
+pub struct App {
     /// Application state which is managed by the COSMIC runtime.
     core: Core,
     /// Display a context drawer with the designated page if defined.
@@ -22,6 +20,7 @@ pub struct YourApp {
     key_binds: HashMap<menu::KeyBind, MenuAction>,
     /// A model that contains all of the pages assigned to the nav bar panel.
     nav: nav_bar::Model,
+    content: Content,
 }
 
 /// This is the enum that contains all the possible variants that your application will need to transmit messages.
@@ -29,6 +28,7 @@ pub struct YourApp {
 /// If your application does not need to send messages, you can use an empty enum or `()`.
 #[derive(Debug, Clone)]
 pub enum Message {
+    Content(content::Message),
     LaunchUrl(String),
     ToggleContextPage(ContextPage),
 }
@@ -36,8 +36,6 @@ pub enum Message {
 /// Identifies a page in the application.
 pub enum Page {
     Page1,
-    Page2,
-    Page3,
 }
 
 /// Identifies a context page to display in the context drawer.
@@ -78,7 +76,7 @@ impl menu::action::MenuAction for MenuAction {
 /// - `Flags` is the data that your application needs to use before it starts.
 /// - `Message` is the enum that contains all the possible variants that your application will need to transmit messages.
 /// - `APP_ID` is the unique identifier of your application.
-impl Application for YourApp {
+impl Application for App {
     type Executor = cosmic::executor::Default;
 
     type Flags = ();
@@ -116,21 +114,12 @@ impl Application for YourApp {
             .icon(icon::from_name("applications-science-symbolic"))
             .activate();
 
-        nav.insert()
-            .text("Page 2")
-            .data::<Page>(Page::Page2)
-            .icon(icon::from_name("applications-system-symbolic"));
-
-        nav.insert()
-            .text("Page 3")
-            .data::<Page>(Page::Page3)
-            .icon(icon::from_name("applications-games-symbolic"));
-
-        let mut app = YourApp {
+        let mut app = App {
             core,
             context_page: ContextPage::default(),
             key_binds: HashMap::new(),
             nav,
+            content: Content::new(),
         };
 
         let command = app.update_titles();
@@ -158,13 +147,14 @@ impl Application for YourApp {
     ///
     /// To get a better sense of which widgets are available, check out the `widget` module.
     fn view(&self) -> Element<Self::Message> {
-        widget::text::title1(fl!("welcome"))
-            .apply(widget::container)
-            .width(Length::Fill)
-            .height(Length::Fill)
-            .align_x(Horizontal::Center)
-            .align_y(Vertical::Center)
-            .into()
+        self.content.view().map(Message::Content)
+        // widget::text::title1(fl!("welcome"))
+        //     .apply(widget::container)
+        //     .width(Length::Fill)
+        //     .height(Length::Fill)
+        //     .align_x(Horizontal::Left)
+        //     .align_y(Vertical::Top)
+        //     .into()
     }
 
     /// Application messages are handled here. The application state can be modified based on
@@ -189,6 +179,7 @@ impl Application for YourApp {
                 // Set the title of the context drawer.
                 self.set_context_title(context_page.title());
             }
+            Message::Content(_) => {}
         }
         Command::none()
     }
@@ -213,7 +204,7 @@ impl Application for YourApp {
     }
 }
 
-impl YourApp {
+impl App {
     /// The about page for this app.
     pub fn about(&self) -> Element<Message> {
         let cosmic_theme::Spacing { space_xxs, .. } = theme::active().cosmic().spacing;
