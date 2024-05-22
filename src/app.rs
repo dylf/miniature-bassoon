@@ -2,12 +2,13 @@
 
 use std::collections::HashMap;
 
+use crate::content::{self, Content};
+use crate::storage::Storage;
 use crate::fl;
-use cosmic::app::{Command, Core};
+use cosmic::app::{message, Command, Core};
 use cosmic::iced::Alignment;
 use cosmic::widget::{self, icon, menu, nav_bar};
 use cosmic::{cosmic_theme, theme, Application, ApplicationExt, Element};
-use crate::content::{self, Content};
 
 const REPOSITORY: &str = "https://github.com/dylf/miniature-bassoon";
 
@@ -21,11 +22,9 @@ pub struct App {
     /// A model that contains all of the pages assigned to the nav bar panel.
     nav: nav_bar::Model,
     content: Content,
+    storage: Storage,
 }
 
-/// This is the enum that contains all the possible variants that your application will need to transmit messages.
-/// This is used to communicate between the different parts of your application.
-/// If your application does not need to send messages, you can use an empty enum or `()`.
 #[derive(Debug, Clone)]
 pub enum Message {
     Content(content::Message),
@@ -33,12 +32,10 @@ pub enum Message {
     ToggleContextPage(ContextPage),
 }
 
-/// Identifies a page in the application.
 pub enum Page {
     Page1,
 }
 
-/// Identifies a context page to display in the context drawer.
 #[derive(Copy, Clone, Debug, Default, Eq, PartialEq)]
 pub enum ContextPage {
     #[default]
@@ -68,14 +65,6 @@ impl menu::action::MenuAction for MenuAction {
     }
 }
 
-/// Implement the `Application` trait for your application.
-/// This is where you define the behavior of your application.
-///
-/// The `Application` trait requires you to define the following types and constants:
-/// - `Executor` is the async executor that will be used to run your application's commands.
-/// - `Flags` is the data that your application needs to use before it starts.
-/// - `Message` is the enum that contains all the possible variants that your application will need to transmit messages.
-/// - `APP_ID` is the unique identifier of your application.
 impl Application for App {
     type Executor = cosmic::executor::Default;
 
@@ -83,7 +72,7 @@ impl Application for App {
 
     type Message = Message;
 
-    const APP_ID: &'static str = "com.example.CosmicAppTemplate";
+    const APP_ID: &'static str = "dev.dylf.MiniatureBassoon";
 
     fn core(&self) -> &Core {
         &self.core
@@ -93,23 +82,15 @@ impl Application for App {
         &mut self.core
     }
 
-    /// Instructs the cosmic runtime to use this model as the nav bar model.
     fn nav_model(&self) -> Option<&nav_bar::Model> {
         Some(&self.nav)
     }
 
-    /// This is the entry point of your application, it is where you initialize your application.
-    ///
-    /// Any work that needs to be done before the application starts should be done here.
-    ///
-    /// - `core` is used to passed on for you by libcosmic to use in the core of your own application.
-    /// - `flags` is used to pass in any data that your application needs to use before it starts.
-    /// - `Command` type is used to send messages to your application. `Command::none()` can be used to send no messages to your application.
     fn init(core: Core, _flags: Self::Flags) -> (Self, Command<Self::Message>) {
         let mut nav = nav_bar::Model::default();
 
         nav.insert()
-            .text("Page 1")
+            .text("Main")
             .data::<Page>(Page::Page1)
             .icon(icon::from_name("applications-science-symbolic"))
             .activate();
@@ -120,6 +101,7 @@ impl Application for App {
             key_binds: HashMap::new(),
             nav,
             content: Content::new(),
+            storage: Storage::new(),
         };
 
         let command = app.update_titles();
@@ -127,7 +109,6 @@ impl Application for App {
         (app, command)
     }
 
-    /// Elements to pack at the start of the header bar.
     fn header_start(&self) -> Vec<Element<Self::Message>> {
         let menu_bar = menu::bar(vec![menu::Tree::with_children(
             menu::root(fl!("view")),
@@ -140,26 +121,10 @@ impl Application for App {
         vec![menu_bar.into()]
     }
 
-    /// This is the main view of your application, it is the root of your widget tree.
-    ///
-    /// The `Element` type is used to represent the visual elements of your application,
-    /// it has a `Message` associated with it, which dictates what type of message it can send.
-    ///
-    /// To get a better sense of which widgets are available, check out the `widget` module.
     fn view(&self) -> Element<Self::Message> {
         self.content.view().map(Message::Content)
-        // widget::text::title1(fl!("welcome"))
-        //     .apply(widget::container)
-        //     .width(Length::Fill)
-        //     .height(Length::Fill)
-        //     .align_x(Horizontal::Left)
-        //     .align_y(Vertical::Top)
-        //     .into()
     }
 
-    /// Application messages are handled here. The application state can be modified based on
-    /// what message was received. Commands may be returned for asynchronous execution on a
-    /// background thread managed by the application's executor.
     fn update(&mut self, message: Self::Message) -> Command<Self::Message> {
         match message {
             Message::LaunchUrl(url) => {
@@ -179,7 +144,13 @@ impl Application for App {
                 // Set the title of the context drawer.
                 self.set_context_title(context_page.title());
             }
-            Message::Content(_) => {}
+            Message::Content(message) => {
+                let content_command = self.content.update(message);
+                if let Some(content::Command::Save(data)) = content_command {
+                    return Command::perform
+                        (self.storage.save(data.clone()), |_| message::none() );
+                };
+            }
         }
         Command::none()
     }

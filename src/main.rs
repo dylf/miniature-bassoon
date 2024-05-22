@@ -5,6 +5,7 @@ use app::App;
 mod app;
 mod content;
 mod core;
+mod storage;
 
 /// The `cosmic::app::run()` function is the starting point of your application.
 /// It takes two arguments:
