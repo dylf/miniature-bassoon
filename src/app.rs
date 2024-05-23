@@ -3,7 +3,7 @@
 use std::collections::HashMap;
 
 use crate::content::{self, Content};
-use crate::storage::Storage;
+use crate::storage::save_value;
 use crate::fl;
 use cosmic::app::{message, Command, Core};
 use cosmic::iced::Alignment;
@@ -22,7 +22,6 @@ pub struct App {
     /// A model that contains all of the pages assigned to the nav bar panel.
     nav: nav_bar::Model,
     content: Content,
-    storage: Storage,
 }
 
 #[derive(Debug, Clone)]
@@ -101,7 +100,6 @@ impl Application for App {
             key_binds: HashMap::new(),
             nav,
             content: Content::new(),
-            storage: Storage::new(),
         };
 
         let command = app.update_titles();
@@ -147,8 +145,10 @@ impl Application for App {
             Message::Content(message) => {
                 let content_command = self.content.update(message);
                 if let Some(content::Command::Save(data)) = content_command {
+                    let _data_clone = data.clone();
                     return Command::perform
-                        (self.storage.save(data.clone()), |_| message::none() );
+                        (save_value(data),
+                            |_| message::none() );
                 };
             }
         }
