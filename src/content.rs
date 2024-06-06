@@ -19,7 +19,7 @@ pub enum Command {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum Radios {
+pub enum Radios {
     Option1,
     Option2,
     Option3,

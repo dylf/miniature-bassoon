@@ -3,6 +3,7 @@
 use std::collections::HashMap;
 
 use crate::content::{self, Content};
+use crate::device::*;
 use crate::storage::save_value;
 use crate::fl;
 use cosmic::app::{message, Command, Core};
@@ -88,11 +89,19 @@ impl Application for App {
     fn init(core: Core, _flags: Self::Flags) -> (Self, Command<Self::Message>) {
         let mut nav = nav_bar::Model::default();
 
-        nav.insert()
-            .text("Main")
-            .data::<Page>(Page::Page1)
-            .icon(icon::from_name("applications-science-symbolic"))
-            .activate();
+        get_devices().iter().for_each(|device| {
+            let name = device.name.clone();
+            nav.insert()
+                .text(name)
+                .data::<Page>(Page::Page1)
+                .icon(icon::from_name("applications-science-symbolic"))
+                .activate();
+        });
+        // nav.insert()
+        //     .text("Main")
+        //     .data::<Page>(Page::Page1)
+        //     .icon(icon::from_name("applications-science-symbolic"))
+        //     .activate();
 
         let mut app = App {
             core,
