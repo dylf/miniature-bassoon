@@ -1,3 +1,4 @@
+use crate::device::*;
 use crate::fl;
 use cosmic::widget;
 use cosmic::{theme, Element};
@@ -11,6 +12,7 @@ pub struct Content {
 pub enum Message {
     Input(String),
     Radio(Radios),
+    Slider(f32),
     Submit,
 }
 
@@ -54,20 +56,69 @@ impl Content {
         widget::column().spacing(spacing.space_xxs).push(r1).push(r2).push(r3).into()
     }
 
-    pub fn view(&self) -> Element<Message> {
+    fn device_controls(&self, path: String) -> Element<Message> {
+        let spacing = theme::active().cosmic().spacing;
+        let form = widget::column().spacing(spacing.space_xxs);
+        let mut groups = 0;
+        match get_device_controls(&path) {
+            Ok(controls) => {
+                let form = form.push(widget::text::title2(String::from("Controls")))
+                    .push(widget::warning::warning(get_caps_string(&path)));
+                
+                controls.iter().fold(form, |form, control| {
+                    match control {
+                        DeviceControls::ControlGroup(group) => {
+                            let form = if groups > 0 {
+                                form.push(widget::divider::horizontal::default())
+                            } else {
+                                form
+                            };
+                            groups += 1;
+
+                            let form = form.push(widget::text::title4(group.name.clone()));
+                            let form = group.controls.iter().fold(form, |form, control| {
+                                form.push(self.render_ctrl(control))
+                            });
+                            form
+                        }
+                        DeviceControls::Control(control) => {
+                            form.push(widget::text::text(control.name.clone()))
+                        }
+                    }
+                }).into()
+            }
+            Err(e) => {
+                form.push(widget::warning::warning(e)).into()
+            }
+        }
+    }
+
+    fn render_ctrl(&self, ctrl: &Control) -> Element<Message> {
+        let spacing = theme::active().cosmic().spacing;
+        let min = ctrl.min as f32;
+        let max = ctrl.max as f32;
+        let default = ctrl.default as f32;
+        let step = ctrl.step as f32;
+        let slider = widget::slider::Slider::new(min..=max, default, (|val| Message::Slider(val)))
+            .step(step);
+        let text = widget::text::text(ctrl.name.clone());
+        widget::column().spacing(spacing.space_xxs).push(text).push(slider).into()
+    }
+
+    pub fn view(&self, device_path: String) -> Element<Message> {
         let spacing = theme::active().cosmic().spacing;
         widget::column()
             .spacing(spacing.space_xs)
             .push(self.title())
-            .push(widget::warning::warning("Warning: I don't know what I'm doing!"))
-            .push(
-                widget::text_input::text_input("Enter your name", &self.input)
-                    .on_input(Message::Input)
-                    .label("Name")
-                    .width(150)
-            )
-            .push(self.radios())
-            .push(self.button())
+            .push(self.device_controls(device_path))
+            // .push(
+            //     widget::text_input::text_input("Enter your name", &self.input)
+            //         .on_input(Message::Input)
+            //         .label("Name")
+            //         .width(150)
+            // )
+            // .push(self.radios())
+            // .push(self.button())
             .into()
     }
 
@@ -81,6 +132,10 @@ impl Content {
             Message::Radio(radio) => {
                 self.options = radio;
                 println!("Radio: {:?}", radio);
+                None
+            },
+            Message::Slider(val) => {
+                println!("Slider: {:?}", val);
                 None
             }
         }

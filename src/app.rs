@@ -33,7 +33,7 @@ pub enum Message {
 }
 
 pub enum Page {
-    Page1,
+    Capabilities(String),
 }
 
 #[derive(Copy, Clone, Debug, Default, Eq, PartialEq)]
@@ -93,7 +93,7 @@ impl Application for App {
             let name = device.name.clone();
             nav.insert()
                 .text(name)
-                .data::<Page>(Page::Page1)
+                .data::<Page>(Page::Capabilities(device.path.clone()))
                 .icon(icon::from_name("applications-science-symbolic"))
                 .activate();
         });
@@ -129,7 +129,13 @@ impl Application for App {
     }
 
     fn view(&self) -> Element<Self::Message> {
-        self.content.view().map(Message::Content)
+        match self.nav.data(self.nav.active()) {
+            Some(&Page::Capabilities(ref s)) => self.content.view(s.clone()).map(Message::Content),
+            _ => {
+                cosmic::widget::button::button("Main").on_press(Message::Content(content::Message::Submit)).into()
+            }
+        }
+        // self.content.view().map(Message::Content)
     }
 
     fn update(&mut self, message: Self::Message) -> Command<Self::Message> {
