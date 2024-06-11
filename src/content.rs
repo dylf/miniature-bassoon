@@ -77,7 +77,7 @@ impl Content {
 
                             let form = form.push(widget::text::title4(group.name.clone()));
                             let form = group.controls.iter().fold(form, |form, control| {
-                                form.push(self.render_ctrl(control))
+                                form.push(control.render_ctrl())
                             });
                             form
                         }
@@ -91,18 +91,6 @@ impl Content {
                 form.push(widget::warning::warning(e)).into()
             }
         }
-    }
-
-    fn render_ctrl(&self, ctrl: &Control) -> Element<Message> {
-        let spacing = theme::active().cosmic().spacing;
-        let min = ctrl.min as f32;
-        let max = ctrl.max as f32;
-        let default = ctrl.default as f32;
-        let step = ctrl.step as f32;
-        let slider = widget::slider::Slider::new(min..=max, default, (|val| Message::Slider(val)))
-            .step(step);
-        let text = widget::text::text(ctrl.name.clone());
-        widget::column().spacing(spacing.space_xxs).push(text).push(slider).into()
     }
 
     pub fn view(&self, device_path: String) -> Element<Message> {
