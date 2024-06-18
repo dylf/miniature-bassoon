@@ -14,13 +14,9 @@ use cosmic::{cosmic_theme, theme, Application, ApplicationExt, Element};
 const REPOSITORY: &str = "https://github.com/dylf/miniature-bassoon";
 
 pub struct App {
-    /// Application state which is managed by the COSMIC runtime.
     core: Core,
-    /// Display a context drawer with the designated page if defined.
     context_page: ContextPage,
-    /// Key bindings for the application's menu bar.
     key_binds: HashMap<menu::KeyBind, MenuAction>,
-    /// A model that contains all of the pages assigned to the nav bar panel.
     nav: nav_bar::Model,
     content: Content,
 }
@@ -33,7 +29,7 @@ pub enum Message {
 }
 
 pub enum Page {
-    Capabilities(String),
+    VideoDeviceForm(String),
 }
 
 #[derive(Copy, Clone, Debug, Default, Eq, PartialEq)]
@@ -93,15 +89,10 @@ impl Application for App {
             let name = device.name.clone();
             nav.insert()
                 .text(name)
-                .data::<Page>(Page::Capabilities(device.path.clone()))
+                .data::<Page>(Page::VideoDeviceForm(device.path.clone()))
                 .icon(icon::from_name("applications-science-symbolic"))
                 .activate();
         });
-        // nav.insert()
-        //     .text("Main")
-        //     .data::<Page>(Page::Page1)
-        //     .icon(icon::from_name("applications-science-symbolic"))
-        //     .activate();
 
         let mut app = App {
             core,
@@ -130,12 +121,13 @@ impl Application for App {
 
     fn view(&self) -> Element<Self::Message> {
         match self.nav.data(self.nav.active()) {
-            Some(&Page::Capabilities(ref s)) => self.content.view(s.clone()).map(Message::Content),
+            Some(Page::VideoDeviceForm(dev_path)) => {
+                self.content.view(dev_path.clone()).map(Message::Content)
+            }
             _ => {
                 cosmic::widget::button::button("Main").on_press(Message::Content(content::Message::Submit)).into()
             }
         }
-        // self.content.view().map(Message::Content)
     }
 
     fn update(&mut self, message: Self::Message) -> Command<Self::Message> {
@@ -146,15 +138,12 @@ impl Application for App {
 
             Message::ToggleContextPage(context_page) => {
                 if self.context_page == context_page {
-                    // Close the context drawer if the toggled context page is the same.
                     self.core.window.show_context = !self.core.window.show_context;
                 } else {
-                    // Open the context drawer to display the requested context page.
                     self.context_page = context_page;
                     self.core.window.show_context = true;
                 }
 
-                // Set the title of the context drawer.
                 self.set_context_title(context_page.title());
             }
             Message::Content(message) => {
@@ -170,7 +159,6 @@ impl Application for App {
         Command::none()
     }
 
-    /// Display a context drawer if the context page is requested.
     fn context_drawer(&self) -> Option<Element<Self::Message>> {
         if !self.core.window.show_context {
             return None;
@@ -181,9 +169,7 @@ impl Application for App {
         })
     }
 
-    /// Called when a nav item is selected.
     fn on_nav_select(&mut self, id: nav_bar::Id) -> Command<Self::Message> {
-        // Activate the page in the model.
         self.nav.activate(id);
 
         self.update_titles()
@@ -191,7 +177,6 @@ impl Application for App {
 }
 
 impl App {
-    /// The about page for this app.
     pub fn about(&self) -> Element<Message> {
         let cosmic_theme::Spacing { space_xxs, .. } = theme::active().cosmic().spacing;
 
@@ -215,7 +200,6 @@ impl App {
             .into()
     }
 
-    /// Updates the header and window titles.
     pub fn update_titles(&mut self) -> Command<Message> {
         let mut window_title = fl!("app-title");
         let mut header_title = String::new();

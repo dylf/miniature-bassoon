@@ -1,15 +1,13 @@
-use cosmic::widget;
 use v4l::context;
 use v4l::prelude::*;
 use v4l::control::Type as ControlType;
 use v4l::control::Value as ControlValue;
-use cosmic::{theme, Element};
 
 #[derive(Debug)]
 pub struct VideoDevice {
     pub name: String,
     pub path: String,
-    index: usize,
+    pub index: usize,
 }
 #[derive(Debug)]
 pub struct Control {
@@ -35,35 +33,6 @@ pub struct ControlGroup {
 pub enum DeviceControls {
     ControlGroup(ControlGroup),
     Control(Control),
-}
-
-pub trait RenderControl {
-    fn render_ctrl<'a, T: 'a>(&'a self) -> Element<'a, T>;
-}
-
-impl RenderControl for Control  {
-    fn render_ctrl<'a, T: 'a>(&'a self) -> Element<'a, T> {
-        let spacing = theme::active().cosmic().spacing;
-        // let min = self.min as f32;
-        // let max = self.max as f32;
-        // let default = self.default as f32;
-        // let step = self.step as f32;
-        // let element: Element<Message> = match ctrl.control_type {
-        //     v4l::control::Type::Menu => {
-        //         let menu_items = ctrl.menu_items.as_ref().unwrap();
-        //         let selected = menu_items.iter().position(|(i, _)| *i == (ctrl.default as u32)).unwrap_or(0);
-        //         let options = menu_items.iter().map(|(_, v)| v.clone()).collect::<Vec<String>>();
-        //         widget::dropdown::dropdown(
-        //             options,
-        //             Some(selected),
-        //             |val| Message::Slider(val as f32)
-        //         ).into()
-        //     }
-        //     _ => widget::slider::Slider::new(min..=max, default, |val| Message::Slider(val)).step(step).into()
-        // };
-        let text = widget::text::text(self.name.clone());
-        widget::column().spacing(spacing.space_xxs).push(text).into()
-    }
 }
 
 pub fn get_devices() -> Vec<VideoDevice> {
@@ -99,8 +68,11 @@ pub fn get_caps_string(path: &str) -> String {
     format!("{:?}", caps)
 }
 
-pub fn get_device_controls(path: &str) -> Result<Vec<DeviceControls>, String> {
-    let dev = Device::with_path(path).map_err(|e| format!("{}", e))?;
+pub fn get_device_by_path(path: &str) -> Result<Device, String> {
+    Device::with_path(path).map_err(|e| format!("{}", e))
+}
+
+pub fn get_device_controls(dev: &Device) -> Result<Vec<DeviceControls>, String> {
     let controls = dev.query_controls().map_err(|e| format!("{}", e))?;
     let mut device_controls: Vec<DeviceControls> = Vec::new();
 
@@ -138,6 +110,4 @@ pub fn get_device_controls(path: &str) -> Result<Vec<DeviceControls>, String> {
     }
     Ok(device_controls)
 }
-
-
     
