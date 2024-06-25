@@ -111,3 +111,12 @@ pub fn get_device_controls(dev: &Device) -> Result<Vec<DeviceControls>, String> 
     Ok(device_controls)
 }
     
+pub fn set_control_val(path: String, control_id: u32, value: ControlValue) -> Result<(), String> {
+    let dev = Device::with_path(path).map_err(|e| format!("{}", e))?;
+    let control = v4l::Control {
+        id: control_id,
+        value,
+    };
+    dev.set_control(control).map_err(|e| format!("{}", e))?;
+    Ok(())
+}

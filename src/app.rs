@@ -147,7 +147,16 @@ impl Application for App {
                 self.set_context_title(context_page.title());
             }
             Message::Content(message) => {
-                let content_command = self.content.update(message);
+                // very ineligant i no like
+                let path = match self.nav.data(self.nav.active()) {
+                    Some(Page::VideoDeviceForm(dev_path)) => {
+                        dev_path.clone()
+                    }
+                    _ => {
+                        return Command::none();
+                    }
+                };
+                let content_command = self.content.update(path, message);
                 if let Some(content::Command::Save(data)) = content_command {
                     let _data_clone = data.clone();
                     return Command::perform

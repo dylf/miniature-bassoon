@@ -2,6 +2,7 @@ use crate::device::*;
 use crate::fl;
 use cosmic::widget;
 use cosmic::{theme, Element};
+use std::f32;
 
 pub struct Content {
     input: String,
@@ -9,7 +10,7 @@ pub struct Content {
 
 #[derive(Debug, Clone)]
 pub enum Message {
-    Slider(f32),
+    Slider(u32, f32),
     Submit,
 }
 
@@ -55,9 +56,17 @@ impl Content {
                             let form = form.push(widget::text::title4(group.name.clone()));
                             let form = group.controls.iter().fold(form, |form, control| {
                                 let min = control.min as f32;
-                                let max = control.min as f32;
+                                let max = control.max as f32;
+                                let default = control.default as f32;
+                                let val = match control.value {
+                                    v4l::control::Value::Integer(val) => val as f32,
+                                    _ => 0.0,
+                                };
+                                let id = control.id;
+                                println!("Default: {:?}", default);
+                                println!("Val: {:?}", val);
                                 form.push(widget::text::text(control.name.clone()))
-                                    .push(widget::slider::Slider::new(min..=max, 1.0, Message::Slider))
+                                    .push(widget::slider(min..=max, val, move |x| { Message::Slider(id, x)}))
                             });
                             form
                         }
@@ -82,14 +91,17 @@ impl Content {
             .into()
     }
 
-    pub fn update(&mut self, message: Message) -> Option<Command> {
+    pub fn update(&mut self, path: String, message: Message) -> Option<Command> {
         match message {
             Message::Submit => Some(Command::Save(self.input.clone())),
-            Message::Slider(val) => {
+            Message::Slider(id, val) => {
                 println!("Slider: {:?}", val);
+                set_control_val(path, id, v4l::control::Value::Integer(val as i64)).unwrap();
                 None
             }
         }
     }
+
+
     
 }

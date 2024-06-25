@@ -2,6 +2,8 @@
 
 ## TODO
 - [ ] Send control info to the device
+    - [ ] Handle the device better, store a ref in the app state?
+- [ ] Figure out wonky slider stuff
 - [ ] Persist the settings
 - [ ] Close to systray
 - [ ] Show video feed
