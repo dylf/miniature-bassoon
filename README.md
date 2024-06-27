@@ -1,12 +1,18 @@
 # COSMIC Application
 
 ## TODO
-- [ ] Send control info to the device
-    - [ ] Handle the device better, store a ref in the app state?
-- [ ] Figure out wonky slider stuff
+- [x] Send control info to the device
+    - [x] Handle the device better, store a ref in the app state?
+    - [ ] Handle other control types
+        - [x] Bool
+        - [ ] Menu
+- [ ] Figure out scrolling the viewport
+    - [ ] Figure out wonky slider stuff
 - [ ] Persist the settings
 - [ ] Close to systray
 - [ ] Show video feed
+- [ ] GitHub actions
+- [ ] Test coverage
 - [ ] Update the README.md with correct info
 - [ ] Distribution stuff
 

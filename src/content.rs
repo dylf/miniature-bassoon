@@ -11,6 +11,7 @@ pub struct Content {
 #[derive(Debug, Clone)]
 pub enum Message {
     Slider(u32, f32),
+    Boolean(u32, bool),
     Submit,
 }
 
@@ -50,15 +51,29 @@ impl Content {
 
                             let form = form.push(widget::text::title4(group.name.clone()));
                             let form = group.controls.iter().fold(form, |form, control| {
-                                let min = control.min as f32;
-                                let max = control.max as f32;
-                                let val = match control.value {
-                                    v4l::control::Value::Integer(val) => val as f32,
-                                    _ => 0.0,
-                                };
-                                let id = control.id;
-                                form.push(widget::text::text(control.name.clone()))
-                                    .push(widget::slider(min..=max, val, move |x| { Message::Slider(id, x)}))
+                                match control.control_type {
+                                    v4l::control::Type::Boolean => {
+                                        let val = match control.value {
+                                            v4l::control::Value::Boolean(val) => val,
+                                            _ => false,
+                                        };
+                                        let id = control.id;
+                                        form.push(widget::toggler(control.name.clone(), val, move |x| { Message::Boolean(id, x)}))
+                                    }
+                                    v4l::control::Type::Integer => {
+
+                                        let min = control.min as f32;
+                                        let max = control.max as f32;
+                                        let val = match control.value {
+                                            v4l::control::Value::Integer(val) => val as f32,
+                                            _ => 0.0,
+                                        };
+                                        let id = control.id;
+                                        form.push(widget::text::text(control.name.clone()))
+                                            .push(widget::slider(min..=max, val, move |x| { Message::Slider(id, x)}))
+                                    },
+                                    _ => form.push(widget::text::text(format!("No Widget {}: {:?}", control.name, control.control_type)))
+                                }
                             });
                             form
                         }
@@ -89,10 +104,11 @@ impl Content {
             Message::Slider(id, val) => {
                 set_control_val(dev, id, v4l::control::Value::Integer(val as i64)).unwrap();
                 None
+            },
+            Message::Boolean(id, val) => {
+                set_control_val(dev, id, v4l::control::Value::Boolean(val)).unwrap();
+                None
             }
         }
     }
-
-
-    
 }

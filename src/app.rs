@@ -189,10 +189,9 @@ impl App {
             Some(Page::VideoDeviceForm(dev_path)) => {
                 let dev = get_device_by_path(&dev_path.clone()).unwrap();
                 self.selected_device = Some(dev);
-                println!("Select - {}", dev_path.clone());
             }
             _ => {
-                println!("nope");
+                println!("Something terrible has occured!");
             }
         }
     }
