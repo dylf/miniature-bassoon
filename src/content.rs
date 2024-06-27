@@ -32,7 +32,9 @@ impl Content {
 
     fn device_controls(&self, dev: &v4l::device::Device) -> Element<Message> {
         let spacing = theme::active().cosmic().spacing;
-        let form = widget::column().spacing(spacing.space_xxs);
+        let form = widget::column()
+            .padding([0, spacing.space_s, 0, 0])
+            .spacing(spacing.space_xxs);
         let mut groups = 0;
         match get_device_controls(dev) {
             Ok(controls) => {
@@ -91,11 +93,11 @@ impl Content {
 
     pub fn view(&self, dev: &v4l::device::Device) -> Element<Message> {
         let spacing = theme::active().cosmic().spacing;
-        widget::column()
+        widget::scrollable(widget::column()
             .spacing(spacing.space_xs)
             .push(self.title())
             .push(self.device_controls(dev))
-            .into()
+            ).into()
     }
 
     pub fn update(&mut self, dev: &v4l::device::Device, message: Message) -> Option<Command> {

@@ -6,8 +6,8 @@
     - [ ] Handle other control types
         - [x] Bool
         - [ ] Menu
-- [ ] Figure out scrolling the viewport
-    - [ ] Figure out wonky slider stuff
+- [x] Figure out scrolling the viewport
+    - [x] Figure out wonky slider stuff
 - [ ] Persist the settings
 - [ ] Close to systray
 - [ ] Show video feed
