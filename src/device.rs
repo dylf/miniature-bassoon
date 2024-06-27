@@ -62,8 +62,7 @@ pub fn get_capabilities(path: &str) -> v4l::capability::Capabilities {
     dev.query_caps().expect("Failed to query capabilities")
 }
 
-pub fn get_caps_string(path: &str) -> String {
-    let dev = Device::with_path(path).unwrap();
+pub fn get_caps_string(dev: &Device) -> String {
     let caps = dev.query_caps().unwrap();
     format!("{:?}", caps)
 }
@@ -110,9 +109,8 @@ pub fn get_device_controls(dev: &Device) -> Result<Vec<DeviceControls>, String> 
     }
     Ok(device_controls)
 }
-    
-pub fn set_control_val(path: String, control_id: u32, value: ControlValue) -> Result<(), String> {
-    let dev = Device::with_path(path).map_err(|e| format!("{}", e))?;
+
+pub fn set_control_val(dev: &Device, control_id: u32, value: ControlValue) -> Result<(), String> {
     let control = v4l::Control {
         id: control_id,
         value,

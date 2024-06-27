@@ -29,19 +29,14 @@ impl Content {
         widget::text::title1(fl!("welcome")).into()
     }
 
-    fn device_controls(&self, path: String) -> Element<Message> {
+    fn device_controls(&self, dev: &v4l::device::Device) -> Element<Message> {
         let spacing = theme::active().cosmic().spacing;
         let form = widget::column().spacing(spacing.space_xxs);
         let mut groups = 0;
-        let Ok(device) = get_device_by_path(&path) else {
-            return form
-                .push(widget::warning::warning(fl!("device-load-failed")))
-                .into();
-        };
-        match get_device_controls(&device) {
+        match get_device_controls(dev) {
             Ok(controls) => {
                 let form = form.push(widget::text::title2(String::from("Controls")))
-                    .push(widget::warning::warning(get_caps_string(&path)));
+                    .push(widget::warning::warning(get_caps_string(dev)));
                 
                 controls.iter().fold(form, |form, control| {
                     match control {
@@ -57,14 +52,11 @@ impl Content {
                             let form = group.controls.iter().fold(form, |form, control| {
                                 let min = control.min as f32;
                                 let max = control.max as f32;
-                                let default = control.default as f32;
                                 let val = match control.value {
                                     v4l::control::Value::Integer(val) => val as f32,
                                     _ => 0.0,
                                 };
                                 let id = control.id;
-                                println!("Default: {:?}", default);
-                                println!("Val: {:?}", val);
                                 form.push(widget::text::text(control.name.clone()))
                                     .push(widget::slider(min..=max, val, move |x| { Message::Slider(id, x)}))
                             });
@@ -82,21 +74,20 @@ impl Content {
         }
     }
 
-    pub fn view(&self, device_path: String) -> Element<Message> {
+    pub fn view(&self, dev: &v4l::device::Device) -> Element<Message> {
         let spacing = theme::active().cosmic().spacing;
         widget::column()
             .spacing(spacing.space_xs)
             .push(self.title())
-            .push(self.device_controls(device_path))
+            .push(self.device_controls(dev))
             .into()
     }
 
-    pub fn update(&mut self, path: String, message: Message) -> Option<Command> {
+    pub fn update(&mut self, dev: &v4l::device::Device, message: Message) -> Option<Command> {
         match message {
             Message::Submit => Some(Command::Save(self.input.clone())),
             Message::Slider(id, val) => {
-                println!("Slider: {:?}", val);
-                set_control_val(path, id, v4l::control::Value::Integer(val as i64)).unwrap();
+                set_control_val(dev, id, v4l::control::Value::Integer(val as i64)).unwrap();
                 None
             }
         }

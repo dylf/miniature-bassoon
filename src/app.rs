@@ -19,6 +19,7 @@ pub struct App {
     key_binds: HashMap<menu::KeyBind, MenuAction>,
     nav: nav_bar::Model,
     content: Content,
+    selected_device: Option<v4l::device::Device>,
 }
 
 #[derive(Debug, Clone)]
@@ -100,7 +101,9 @@ impl Application for App {
             key_binds: HashMap::new(),
             nav,
             content: Content::new(),
+            selected_device: None,
         };
+        app.set_device_from_nav();
 
         let command = app.update_titles();
 
@@ -120,9 +123,9 @@ impl Application for App {
     }
 
     fn view(&self) -> Element<Self::Message> {
-        match self.nav.data(self.nav.active()) {
-            Some(Page::VideoDeviceForm(dev_path)) => {
-                self.content.view(dev_path.clone()).map(Message::Content)
+        match &self.selected_device {
+            Some(dev) => {
+                self.content.view(dev).map(Message::Content)
             }
             _ => {
                 cosmic::widget::button::button("Main").on_press(Message::Content(content::Message::Submit)).into()
@@ -147,22 +150,16 @@ impl Application for App {
                 self.set_context_title(context_page.title());
             }
             Message::Content(message) => {
-                // very ineligant i no like
-                let path = match self.nav.data(self.nav.active()) {
-                    Some(Page::VideoDeviceForm(dev_path)) => {
-                        dev_path.clone()
-                    }
-                    _ => {
-                        return Command::none();
-                    }
-                };
-                let content_command = self.content.update(path, message);
-                if let Some(content::Command::Save(data)) = content_command {
-                    let _data_clone = data.clone();
-                    return Command::perform
-                        (save_value(data),
-                            |_| message::none() );
-                };
+                let dev = &self.selected_device;
+                if let Some(dev) = dev {
+                    let content_command = self.content.update(dev, message);
+                    if let Some(content::Command::Save(data)) = content_command {
+                        let _data_clone = data.clone();
+                        return Command::perform
+                            (save_value(data),
+                                |_| message::none() );
+                    };
+                }
             }
         }
         Command::none()
@@ -180,12 +177,25 @@ impl Application for App {
 
     fn on_nav_select(&mut self, id: nav_bar::Id) -> Command<Self::Message> {
         self.nav.activate(id);
-
+        self.set_device_from_nav();
         self.update_titles()
     }
 }
 
 impl App {
+
+    fn set_device_from_nav(&mut self) {
+        match self.nav.data(self.nav.active()) {
+            Some(Page::VideoDeviceForm(dev_path)) => {
+                let dev = get_device_by_path(&dev_path.clone()).unwrap();
+                self.selected_device = Some(dev);
+                println!("Select - {}", dev_path.clone());
+            }
+            _ => {
+                println!("nope");
+            }
+        }
+    }
     pub fn about(&self) -> Element<Message> {
         let cosmic_theme::Spacing { space_xxs, .. } = theme::active().cosmic().spacing;
 
