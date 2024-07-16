@@ -1,3 +1,4 @@
+use crate::device;
 use crate::device::*;
 use crate::fl;
 use cosmic::widget;
@@ -12,6 +13,7 @@ pub struct Content {
 pub enum Message {
     Slider(u32, f32),
     Boolean(u32, bool),
+    Menu(u32),
     Submit,
 }
 
@@ -53,28 +55,44 @@ impl Content {
 
                             let form = form.push(widget::text::title4(group.name.clone()));
                             let form = group.controls.iter().fold(form, |form, control| {
-                                match control.control_type {
-                                    v4l::control::Type::Boolean => {
-                                        let val = match control.value {
-                                            v4l::control::Value::Boolean(val) => val,
-                                            _ => false,
-                                        };
+                                match control {
+                                    device::DeviceControls::Boolean(control) => {
+                                        let val = control.value;
                                         let id = control.id;
                                         form.push(widget::toggler(control.name.clone(), val, move |x| { Message::Boolean(id, x)}))
                                     }
-                                    v4l::control::Type::Integer => {
-
+                                    device::DeviceControls::Integer(control) => {
                                         let min = control.min as f32;
                                         let max = control.max as f32;
-                                        let val = match control.value {
-                                            v4l::control::Value::Integer(val) => val as f32,
-                                            _ => 0.0,
-                                        };
+                                        let val = control.value as f32;
                                         let id = control.id;
                                         form.push(widget::text::text(control.name.clone()))
                                             .push(widget::slider(min..=max, val, move |x| { Message::Slider(id, x)}))
                                     },
-                                    _ => form.push(widget::text::text(format!("No Widget {}: {:?}", control.name, control.control_type)))
+                                    // v4l::control::Type::Menu => {
+                                    //     let val = match control.value {
+                                    //         v4l::control::Value::Integer(val) => val as u32,
+                                    //         _ => 0,
+                                    //     };
+                                    //     // form.push(widget::text::text(control.name.clone()))
+                                    //     //     .push(widget::dropdown(&(control.menu_items.unwrap()), Some(1), move |x| {
+                                    //     //         let val = 5 as u32;
+                                    //     //         Message::Menu(val)
+                                    //     //     }))
+                                    // },
+                                    device::DeviceControls::Control(control) => {
+                                        form.push(
+                                            widget::text::text(
+                                                format!(
+                                                    "No Widget {}: {:?} - {:?}",
+                                                    control.name,
+                                                    control.control_type,
+                                                    control.value
+                                                )
+                                            )
+                                        )
+                                    } 
+                                    _ => form
                                 }
                             });
                             form
@@ -82,6 +100,7 @@ impl Content {
                         DeviceControls::Control(control) => {
                             form.push(widget::text::text(control.name.clone()))
                         }
+                        _ => form.push(widget::text::text("No Widget"))
                     }
                 }).into()
             }
@@ -109,6 +128,9 @@ impl Content {
             },
             Message::Boolean(id, val) => {
                 set_control_val(dev, id, v4l::control::Value::Boolean(val)).unwrap();
+                None
+            }
+            Message::Menu(_) => {
                 None
             }
         }

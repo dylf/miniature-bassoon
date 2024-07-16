@@ -3,12 +3,16 @@ use v4l::prelude::*;
 use v4l::control::Type as ControlType;
 use v4l::control::Value as ControlValue;
 
+
 #[derive(Debug)]
 pub struct VideoDevice {
     pub name: String,
     pub path: String,
     pub index: usize,
+    // pub capabilities: v4l::capability::Capabilities,
+    pub controls: Vec<DeviceControls>,
 }
+
 #[derive(Debug)]
 pub struct Control {
     pub id: u32,
@@ -20,20 +24,56 @@ pub struct Control {
     pub value: ControlValue,
     pub control_type: ControlType,
     pub menu_items: Option<Vec<(u32, String)>>,
+    // pub flags: Flags,
 }
+
+#[derive(Debug)]
+pub struct IntegerControl {
+    pub id: u32,
+    pub name: String,
+    pub min: i64,
+    pub max: i64,
+    pub step: u64,
+    pub default: i64,
+    pub value: i64,
+}
+
+#[derive(Debug)]
+pub struct BooleanControl {
+    pub id: u32,
+    pub name: String,
+    pub default: bool,
+    pub value: bool,
+}
+
+#[derive(Debug)]
+pub struct MenuControl {
+    pub id: u32,
+    pub name: String,
+    pub default: u32,
+    pub value: Option<u32>,
+    // Do we need u32 here?
+    pub menu_items: Vec<String>,
+}
+
 
 #[derive(Debug)]
 pub struct ControlGroup {
     pub id: u32,
     pub name: String,
-    pub controls: Vec<Control>,
+    pub controls: Vec<DeviceControls>,
 }
 
 #[derive(Debug)]
 pub enum DeviceControls {
     ControlGroup(ControlGroup),
+    Integer(IntegerControl),
+    Boolean(BooleanControl),
     Control(Control),
 }
+
+// pub fn map_controls(controls: Vec<DeviceControls>) -> Vec<Control> {
+    
 
 pub fn get_devices() -> Vec<VideoDevice> {
     let devices = context::enum_devices()
@@ -44,14 +84,22 @@ pub fn get_devices() -> Vec<VideoDevice> {
                 .capabilities
                 .contains(v4l::capability::Flags::META_CAPTURE)
         })
-        .map(|dev| {
-            let name = dev.name().expect("Failed to get device name");
-            let path = dev.path().to_str().expect("Failed to get device path");
-            VideoDevice {
+        .filter_map(|dev| {
+        let name = dev.name().unwrap_or(String::from("Unknown"));
+        let path = dev.path().to_str();
+        let device = path.as_ref().and_then(|p| get_device_by_path(p).ok());
+        let device_controls = device.as_ref().and_then(|d| get_device_controls(d).ok());
+
+        if let (name, Some(path), Some(device_controls)) = (name, path, device_controls) {
+            Some(VideoDevice {
                 name: name.to_string(),
                 path: path.to_string(),
                 index: dev.index(),
-            }
+                controls: device_controls,
+            })
+        } else {
+            None
+        }
         })
         .collect::<Vec<VideoDevice>>();
     devices
@@ -84,9 +132,76 @@ pub fn get_device_controls(dev: &Device) -> Result<Vec<DeviceControls>, String> 
                     controls: Vec::new(),
                 }));
             }
+            ControlType::Integer => {
+                let ctrl_val = match dev.control(ctrl.id).map_err(|e| format!("{}", e))?.value {
+                    ControlValue::Integer(val) => val,
+                    _ => 0,
+                };
+                let current_ctrl = DeviceControls::Integer(IntegerControl {
+                    id: ctrl.id,
+                    name: ctrl.name.clone(),
+                    min: ctrl.minimum,
+                    max: ctrl.maximum,
+                    step: ctrl.step,
+                    default: ctrl.default,
+                    value: ctrl_val,
+                });
+                match device_controls.last_mut() {
+                    Some(DeviceControls::ControlGroup(ControlGroup { controls, .. })) => {
+                        controls.push(current_ctrl)
+                    }
+                    _ => device_controls.push(current_ctrl),
+                }
+            }
+            ControlType::Boolean => {
+                let ctrl_val = match dev.control(ctrl.id).map_err(|e| format!("{}", e))?.value {
+                    ControlValue::Boolean(val) => val,
+                    _ => false,
+                };
+                let current_ctrl = DeviceControls::Boolean(BooleanControl {
+                    id: ctrl.id,
+                    name: ctrl.name.clone(),
+                    default: ctrl.default != 0,
+                    value: ctrl_val,
+                });
+                match device_controls.last_mut() {
+                    Some(DeviceControls::ControlGroup(ControlGroup { controls, .. })) => {
+                        controls.push(current_ctrl)
+                    }
+                    _ => device_controls.push(current_ctrl),
+                }
+            },
+            // ControlType::Menu => {
+            //     let ctrl_val = match dev.control(ctrl.id).map_err(|e| format!("{}", e))?.value {
+            //         ControlValue::Integer(val) => val as u32,
+            //         _ => 0,
+            //     };
+            //     let menu_items = dev.query_menu(ctrl.id).map_err(|e| format!("{}", e))?;
+            //     let menu_items = menu_items
+            //         .iter()
+            //         .map(|item| (item.index, item.name.clone()))
+            //         .collect();
+            //     let current_ctrl = DeviceControls::Control(Control {
+            //         id: ctrl.id,
+            //         name: ctrl.name.clone(),
+            //         min: ctrl.minimum,
+            //         max: ctrl.maximum,
+            //         step: ctrl.step,
+            //         default: ctrl.default,
+            //         value: ControlValue::Integer(ctrl_val as i64),
+            //         control_type: ControlType::Menu,
+            //         menu_items: Some(menu_items),
+            //     });
+            //     match device_controls.last_mut() {
+            //         Some(DeviceControls::ControlGroup(ControlGroup { controls, .. })) => {
+            //             controls.push(current_ctrl)
+            //         }
+            //         _ => device_controls.push(current_ctrl),
+            //     }
+            // },
             ctrl_type => {
                 let ctrl_val = dev.control(ctrl.id).map_err(|e| format!("{}", e))?.value;
-                let current_ctrl = Control {
+                let current_ctrl = DeviceControls::Control(Control{
                     id: ctrl.id,
                     name: ctrl.name.clone(),
                     min: ctrl.minimum,
@@ -96,13 +211,13 @@ pub fn get_device_controls(dev: &Device) -> Result<Vec<DeviceControls>, String> 
                     value: ctrl_val,
                     control_type: ctrl_type,
                     menu_items: Some(vec![(0, "".to_string())]),
-                };
+                });
 
                 match device_controls.last_mut() {
                     Some(DeviceControls::ControlGroup(ControlGroup { controls, .. })) => {
                         controls.push(current_ctrl)
                     }
-                    _ => device_controls.push(DeviceControls::Control(current_ctrl)),
+                    _ => device_controls.push(current_ctrl),
                 }
             }
         }
