@@ -32,94 +32,83 @@ impl Content {
         widget::text::title1(fl!("welcome")).into()
     }
 
-    fn device_controls(&self, dev: &v4l::device::Device) -> Element<Message> {
+    fn device_controls<'a>(&self, dev: &'a VideoDevice) -> Element<'a, Message> {
         let spacing = theme::active().cosmic().spacing;
         let form = widget::column()
             .padding([0, spacing.space_s, 0, 0])
             .spacing(spacing.space_xxs);
         let mut groups = 0;
-        match get_device_controls(dev) {
-            Ok(controls) => {
-                let form = form.push(widget::text::title2(String::from("Controls")))
-                    .push(widget::warning::warning(get_caps_string(dev)));
-                
-                controls.iter().fold(form, |form, control| {
-                    match control {
-                        DeviceControls::ControlGroup(group) => {
-                            let form = if groups > 0 {
-                                form.push(widget::divider::horizontal::default())
-                            } else {
-                                form
-                            };
-                            groups += 1;
+        let form = form.push(widget::text::title2(String::from("Controls")))
+            .push(widget::warning::warning(dev.capabilities.to_string()));
+        
+        dev.controls.iter().fold(form, |form, control| {
+            match control {
+                DeviceControls::ControlGroup(group) => {
+                    let form = if groups > 0 {
+                        form.push(widget::divider::horizontal::default())
+                    } else {
+                        form
+                    };
+                    groups += 1;
 
-                            let form = form.push(widget::text::title4(group.name.clone()));
-                            let form = group.controls.iter().fold(form, |form, control| {
-                                match control {
-                                    device::DeviceControls::Boolean(control) => {
-                                        let val = control.value;
-                                        let id = control.id;
-                                        form.push(widget::toggler(control.name.clone(), val, move |x| { Message::Boolean(id, x)}))
-                                    }
-                                    device::DeviceControls::Integer(control) => {
-                                        let min = control.min as f32;
-                                        let max = control.max as f32;
-                                        let val = control.value as f32;
-                                        let id = control.id;
-                                        form.push(widget::text::text(control.name.clone()))
-                                            .push(widget::slider(min..=max, val, move |x| { Message::Slider(id, x)}))
-                                    },
-                                    // v4l::control::Type::Menu => {
-                                    //     let val = match control.value {
-                                    //         v4l::control::Value::Integer(val) => val as u32,
-                                    //         _ => 0,
-                                    //     };
-                                    //     // form.push(widget::text::text(control.name.clone()))
-                                    //     //     .push(widget::dropdown(&(control.menu_items.unwrap()), Some(1), move |x| {
-                                    //     //         let val = 5 as u32;
-                                    //     //         Message::Menu(val)
-                                    //     //     }))
-                                    // },
-                                    device::DeviceControls::Control(control) => {
-                                        form.push(
-                                            widget::text::text(
-                                                format!(
-                                                    "No Widget {}: {:?} - {:?}",
-                                                    control.name,
-                                                    control.control_type,
-                                                    control.value
-                                                )
-                                            )
+                    let form = form.push(widget::text::title4(group.name.clone()));
+                    let form = group.controls.iter().fold(form, |form, control| {
+                        match control {
+                            device::DeviceControls::Boolean(control) => {
+                                let val = control.value;
+                                let id = control.id;
+                                form.push(widget::toggler(control.name.clone(), val, move |x| { Message::Boolean(id, x)}))
+                            }
+                            device::DeviceControls::Integer(control) => {
+                                let min = control.min as f32;
+                                let max = control.max as f32;
+                                let val = control.value as f32;
+                                let id = control.id;
+                                form.push(widget::text::text(control.name.clone()))
+                                    .push(widget::slider(min..=max, val, move |x| { Message::Slider(id, x)}))
+                            },
+                            device::DeviceControls::Menu(control) => {
+                                let val = control.value;
+                                form.push(widget::text::text(control.name.clone()))
+                                    .push(widget::dropdown(&control.menu_items, val, move |x| {
+                                        Message::Menu(x as u32)
+                                    }))
+                            },
+                            device::DeviceControls::Control(control) => {
+                                form.push(
+                                    widget::text::text(
+                                        format!(
+                                            "No Widget {}: {:?} - {:?}",
+                                            control.name,
+                                            control.control_type,
+                                            control.value
                                         )
-                                    } 
-                                    _ => form
-                                }
-                            });
-                            form
+                                    )
+                                )
+                            } 
+                            _ => form
                         }
-                        DeviceControls::Control(control) => {
-                            form.push(widget::text::text(control.name.clone()))
-                        }
-                        _ => form.push(widget::text::text("No Widget"))
-                    }
-                }).into()
+                    });
+                    form
+                }
+                DeviceControls::Control(control) => {
+                    form.push(widget::text::text(control.name.clone()))
+                }
+                _ => form.push(widget::text::text("No Widget"))
             }
-            Err(e) => {
-                form.push(widget::warning::warning(e)).into()
-            }
-        }
+        }).into()
     }
 
-    pub fn view(&self, dev: &v4l::device::Device) -> Element<Message> {
+    pub fn view<'a>(&'a self, dev: &'a VideoDevice) -> Element<Message> {
         let spacing = theme::active().cosmic().spacing;
         widget::scrollable(widget::column()
             .spacing(spacing.space_xs)
             .push(self.title())
             .push(self.device_controls(dev))
-            ).into()
+        ).into()
     }
 
-    pub fn update(&mut self, dev: &v4l::device::Device, message: Message) -> Option<Command> {
+    pub fn update(&mut self, dev: &VideoDevice, message: Message) -> Option<Command> {
         match message {
             Message::Submit => Some(Command::Save(self.input.clone())),
             Message::Slider(id, val) => {

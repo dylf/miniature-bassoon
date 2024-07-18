@@ -19,7 +19,7 @@ pub struct App {
     key_binds: HashMap<menu::KeyBind, MenuAction>,
     nav: nav_bar::Model,
     content: Content,
-    selected_device: Option<v4l::device::Device>,
+    selected_device: Option<VideoDevice>,
 }
 
 #[derive(Debug, Clone)]
@@ -187,7 +187,7 @@ impl App {
     fn set_device_from_nav(&mut self) {
         match self.nav.data(self.nav.active()) {
             Some(Page::VideoDeviceForm(dev_path)) => {
-                let dev = get_device_by_path(&dev_path.clone()).unwrap();
+                let dev = get_device_by_path(&dev_path).unwrap();
                 self.selected_device = Some(dev);
             }
             _ => {
