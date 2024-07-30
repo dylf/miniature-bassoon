@@ -153,6 +153,8 @@ impl Application for App {
                 let dev = &self.selected_device;
                 if let Some(dev) = dev {
                     let content_command = self.content.update(dev, message);
+                    // TODO: Hacky way to update the controls reloading the dev
+                    self.set_device_from_nav();
                     if let Some(content::Command::Save(data)) = content_command {
                         let _data_clone = data.clone();
                         return Command::perform
@@ -187,7 +189,7 @@ impl App {
     fn set_device_from_nav(&mut self) {
         match self.nav.data(self.nav.active()) {
             Some(Page::VideoDeviceForm(dev_path)) => {
-                let dev = get_device_by_path(&dev_path).unwrap();
+                let dev = get_device_by_path(dev_path).unwrap();
                 self.selected_device = Some(dev);
             }
             _ => {

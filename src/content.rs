@@ -13,7 +13,7 @@ pub struct Content {
 pub enum Message {
     Slider(u32, f32),
     Boolean(u32, bool),
-    Menu(u32),
+    Menu(u32, usize),
     Submit,
 }
 
@@ -69,9 +69,10 @@ impl Content {
                             },
                             device::DeviceControls::Menu(control) => {
                                 let val = control.value;
+                                let id = control.id;
                                 form.push(widget::text::text(control.name.clone()))
                                     .push(widget::dropdown(&control.menu_items, val, move |x| {
-                                        Message::Menu(x as u32)
+                                        Message::Menu(id, x)
                                     }))
                             },
                             device::DeviceControls::Control(control) => {
@@ -112,14 +113,21 @@ impl Content {
         match message {
             Message::Submit => Some(Command::Save(self.input.clone())),
             Message::Slider(id, val) => {
+                println!("Setting control {} to {}", id, val);
                 set_control_val(dev, id, v4l::control::Value::Integer(val as i64)).unwrap();
+                println!("Done setting control {} to {}", id, val);
                 None
             },
             Message::Boolean(id, val) => {
+                println!("Setting control {} to {}", id, val);
                 set_control_val(dev, id, v4l::control::Value::Boolean(val)).unwrap();
+                println!("Done setting control {} to {}", id, val);
                 None
             }
-            Message::Menu(_) => {
+            Message::Menu(id, val) => {
+                println!("Setting control {} to {}", id, val);
+                set_control_val(dev, id, v4l::control::Value::Integer(val as i64)).unwrap();
+                println!("Done setting control {} to {}", id, val);
                 None
             }
         }

@@ -53,9 +53,17 @@ pub struct MenuControl {
     pub default: usize,
     pub value: Option<usize>,
     // Do we need u32 here? in v4l type
+    // We kind of do
     pub menu_items: Vec<String>,
 }
 
+#[derive(Debug)]
+pub struct ButtonControl {
+    pub id: u32,
+    pub name: String,
+    pub default: usize,
+    pub value: Option<bool>,
+}
 
 #[derive(Debug)]
 pub struct ControlGroup {
@@ -71,6 +79,7 @@ pub enum DeviceControls {
     Boolean(BooleanControl),
     Control(Control),
     Menu(MenuControl),
+    Button(ButtonControl),
 }
 
 pub fn get_devices() -> Vec<VideoDevice> {
@@ -117,11 +126,6 @@ pub fn get_capabilities(path: &str) -> v4l::capability::Capabilities {
     dev.query_caps().expect("Failed to query capabilities")
 }
 
-pub fn get_caps_string(dev: &Device) -> String {
-    let caps = dev.query_caps().unwrap();
-    format!("{:?}", caps)
-}
-
 pub fn get_v4l_device_by_path(path: &str) -> Result<Device, String> {
     Device::with_path(path).map_err(|e| format!("{}", e))
 }
@@ -142,7 +146,10 @@ pub fn get_device_controls(dev: &Device) -> Result<Vec<DeviceControls>, String> 
             ControlType::Integer => {
                 let ctrl_val = match dev.control(ctrl.id).map_err(|e| format!("{}", e))?.value {
                     ControlValue::Integer(val) => val,
-                    _ => 0,
+                    _ => {
+                        println!("Could not get control value for integer");
+                        ctrl.default
+                    },
                 };
                 let current_ctrl = DeviceControls::Integer(IntegerControl {
                     id: ctrl.id,
@@ -163,7 +170,10 @@ pub fn get_device_controls(dev: &Device) -> Result<Vec<DeviceControls>, String> 
             ControlType::Boolean => {
                 let ctrl_val = match dev.control(ctrl.id).map_err(|e| format!("{}", e))?.value {
                     ControlValue::Boolean(val) => val,
-                    _ => false,
+                    _ => {
+                        println!("Could not get control value for boolean");
+                        ctrl.default != 0
+                    }
                 };
                 let current_ctrl = DeviceControls::Boolean(BooleanControl {
                     id: ctrl.id,
@@ -179,17 +189,33 @@ pub fn get_device_controls(dev: &Device) -> Result<Vec<DeviceControls>, String> 
                 }
             },
             ControlType::Menu => {
-                // if let Some(menu_items) = ctrl.items {
-                //
-                //
-                //
-                // }
+                let ctrl_val = match dev.control(ctrl.id).map_err(|e| format!("{}", e))?.value {
+                    ControlValue::Integer(val) => val,
+                    _ => {
+                        println!("Could not get control value for menu");
+                        ctrl.default
+                    },
+                };
+                let menu_items: Vec<String> = match &ctrl.items {
+                    Some(items) => {
+                    items.iter().map(|item| {
+                        println!("{:?}", item);
+                        match &item.1 {
+                            v4l::control::MenuItem::Value(0) => "Off".to_string(),
+                            v4l::control::MenuItem::Value(1) => "On".to_string(),
+                            v4l::control::MenuItem::Name(name) => name.to_string(),
+                            v4l::control::MenuItem::Value(val) => val.to_string(),
+                        }
+                    }).collect::<Vec<String>>()
+                    },
+                    None => vec![],
+                };
                 let current_ctrl = DeviceControls::Menu(MenuControl {
                     id: ctrl.id,
                     name: ctrl.name.clone(),
                     default: ctrl.default as usize,
-                    value: Some(0),
-                    menu_items: vec![("".to_string())],
+                    value: Some(ctrl_val as usize),
+                    menu_items,
                 });
                     
                 match device_controls.last_mut() {
@@ -199,7 +225,30 @@ pub fn get_device_controls(dev: &Device) -> Result<Vec<DeviceControls>, String> 
                     _ => device_controls.push(current_ctrl),
                 }
             },
+            // ControlType::Button => {
+            //     let ctrl_val: Option<bool> = match dev.control(ctrl.id).map_err(|e| format!("{}", e))?.value {
+            //         ControlValue::None => None,
+            //         _ => {
+            //             println!("Could not get control value for button");
+            //             None
+            //         },
+            //     };
+            //     let current_ctrl = DeviceControls::Button(ButtonControl {
+            //         id: ctrl.id,
+            //         name: ctrl.name.clone(),
+            //         default: ctrl.default as usize,
+            //         value: None,
+            //     });
+            //         
+            //     match device_controls.last_mut() {
+            //         Some(DeviceControls::ControlGroup(ControlGroup { controls, .. })) => {
+            //             controls.push(current_ctrl)
+            //         }
+            //         _ => device_controls.push(current_ctrl),
+            //     }
+            // },
             ctrl_type => {
+                println!("Unsupported control type: {:?}", ctrl_type);
                 let ctrl_val = dev.control(ctrl.id).map_err(|e| format!("{}", e))?.value;
                 let current_ctrl = DeviceControls::Control(Control{
                     id: ctrl.id,
