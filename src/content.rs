@@ -13,7 +13,7 @@ pub struct Content {
 pub enum Message {
     Slider(u32, f32),
     Boolean(u32, bool),
-    Menu(u32, usize),
+    Menu(u32, u32),
     Submit,
 }
 
@@ -68,11 +68,12 @@ impl Content {
                                     .push(widget::slider(min..=max, val, move |x| { Message::Slider(id, x)}))
                             },
                             device::DeviceControls::Menu(control) => {
-                                let val = control.value;
+                                let val = control.menu_items.iter().position(|x| x.id == (control.value.unwrap_or(0) as u32));
                                 let id = control.id;
                                 form.push(widget::text::text(control.name.clone()))
                                     .push(widget::dropdown(&control.menu_items, val, move |x| {
-                                        Message::Menu(id, x)
+                                        let item = control.menu_items[x].id;
+                                        Message::Menu(id, item)
                                     }))
                             },
                             device::DeviceControls::Control(control) => {
@@ -113,21 +114,15 @@ impl Content {
         match message {
             Message::Submit => Some(Command::Save(self.input.clone())),
             Message::Slider(id, val) => {
-                println!("Setting control {} to {}", id, val);
                 set_control_val(dev, id, v4l::control::Value::Integer(val as i64)).unwrap();
-                println!("Done setting control {} to {}", id, val);
                 None
             },
             Message::Boolean(id, val) => {
-                println!("Setting control {} to {}", id, val);
                 set_control_val(dev, id, v4l::control::Value::Boolean(val)).unwrap();
-                println!("Done setting control {} to {}", id, val);
                 None
             }
             Message::Menu(id, val) => {
-                println!("Setting control {} to {}", id, val);
                 set_control_val(dev, id, v4l::control::Value::Integer(val as i64)).unwrap();
-                println!("Done setting control {} to {}", id, val);
                 None
             }
         }

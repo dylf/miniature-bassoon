@@ -1,3 +1,5 @@
+use std::convert::AsRef;
+
 use v4l::context;
 use v4l::prelude::*;
 use v4l::control::Type as ControlType;
@@ -54,7 +56,19 @@ pub struct MenuControl {
     pub value: Option<usize>,
     // Do we need u32 here? in v4l type
     // We kind of do
-    pub menu_items: Vec<String>,
+    pub menu_items: Vec<MenuItem>,
+}
+
+#[derive(Debug, Clone)]
+pub struct MenuItem {
+    pub id: u32,
+    name: String,
+}
+
+impl AsRef<str> for MenuItem {
+    fn as_ref(&self) -> &str {
+        &self.name
+    }
 }
 
 #[derive(Debug)]
@@ -196,17 +210,21 @@ pub fn get_device_controls(dev: &Device) -> Result<Vec<DeviceControls>, String> 
                         ctrl.default
                     },
                 };
-                let menu_items: Vec<String> = match &ctrl.items {
+                let menu_items: Vec<MenuItem> = match &ctrl.items {
                     Some(items) => {
                     items.iter().map(|item| {
                         println!("{:?}", item);
-                        match &item.1 {
+                        let name = match &item.1 {
                             v4l::control::MenuItem::Value(0) => "Off".to_string(),
                             v4l::control::MenuItem::Value(1) => "On".to_string(),
                             v4l::control::MenuItem::Name(name) => name.to_string(),
                             v4l::control::MenuItem::Value(val) => val.to_string(),
+                        };
+                        MenuItem {
+                            id: item.0,
+                            name,
                         }
-                    }).collect::<Vec<String>>()
+                    }).collect::<Vec<MenuItem>>()
                     },
                     None => vec![],
                 };
