@@ -5,10 +5,16 @@
     - [x] Handle the device better, store a ref in the app state?
     - [ ] Handle other control types
         - [x] Bool
-        - [ ] Menu
+        - [x] Menu
+        - [ ] Button?
+- [ ] Flags for control
+    - [ ] Read-only
+    - [ ] Disabled
+    - [ ] ...
 - [x] Figure out scrolling the viewport
     - [x] Figure out wonky slider stuff
 - [ ] Persist the settings
+- [ ] Reset to default settings
 - [ ] Close to systray
 - [ ] Show video feed
 - [ ] GitHub actions

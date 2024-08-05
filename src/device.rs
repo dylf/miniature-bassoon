@@ -54,20 +54,18 @@ pub struct MenuControl {
     pub name: String,
     pub default: usize,
     pub value: Option<usize>,
-    // Do we need u32 here? in v4l type
-    // We kind of do
     pub menu_items: Vec<MenuItem>,
 }
 
 #[derive(Debug, Clone)]
 pub struct MenuItem {
     pub id: u32,
-    name: String,
+    label: String,
 }
 
 impl AsRef<str> for MenuItem {
     fn as_ref(&self) -> &str {
-        &self.name
+        &self.label
     }
 }
 
@@ -213,8 +211,7 @@ pub fn get_device_controls(dev: &Device) -> Result<Vec<DeviceControls>, String> 
                 let menu_items: Vec<MenuItem> = match &ctrl.items {
                     Some(items) => {
                     items.iter().map(|item| {
-                        println!("{:?}", item);
-                        let name = match &item.1 {
+                        let label = match &item.1 {
                             v4l::control::MenuItem::Value(0) => "Off".to_string(),
                             v4l::control::MenuItem::Value(1) => "On".to_string(),
                             v4l::control::MenuItem::Name(name) => name.to_string(),
@@ -222,7 +219,7 @@ pub fn get_device_controls(dev: &Device) -> Result<Vec<DeviceControls>, String> 
                         };
                         MenuItem {
                             id: item.0,
-                            name,
+                            label,
                         }
                     }).collect::<Vec<MenuItem>>()
                     },
@@ -243,31 +240,39 @@ pub fn get_device_controls(dev: &Device) -> Result<Vec<DeviceControls>, String> 
                     _ => device_controls.push(current_ctrl),
                 }
             },
-            // ControlType::Button => {
-            //     let ctrl_val: Option<bool> = match dev.control(ctrl.id).map_err(|e| format!("{}", e))?.value {
-            //         ControlValue::None => None,
-            //         _ => {
-            //             println!("Could not get control value for button");
-            //             None
-            //         },
-            //     };
-            //     let current_ctrl = DeviceControls::Button(ButtonControl {
-            //         id: ctrl.id,
-            //         name: ctrl.name.clone(),
-            //         default: ctrl.default as usize,
-            //         value: None,
-            //     });
-            //         
-            //     match device_controls.last_mut() {
-            //         Some(DeviceControls::ControlGroup(ControlGroup { controls, .. })) => {
-            //             controls.push(current_ctrl)
-            //         }
-            //         _ => device_controls.push(current_ctrl),
-            //     }
-            // },
+            ControlType::Button => {
+                let ctrl_val: Option<bool> = match dev.control(ctrl.id).map_err(|e| format!("{}", e))?.value {
+                    _ => None,
+                };
+                let current_ctrl = DeviceControls::Button(ButtonControl {
+                    id: ctrl.id,
+                    name: ctrl.name.clone(),
+                    default: ctrl.default as usize,
+                    value: None,
+                });
+                    
+                match device_controls.last_mut() {
+                    Some(DeviceControls::ControlGroup(ControlGroup { controls, .. })) => {
+                        controls.push(current_ctrl)
+                    }
+                    _ => device_controls.push(current_ctrl),
+                }
+            },
             ctrl_type => {
-                println!("Unsupported control type: {:?}", ctrl_type);
-                let ctrl_val = dev.control(ctrl.id).map_err(|e| format!("{}", e))?.value;
+                println!("Unsupported control - type: {:?} , name: {:?}, id: {:?}", ctrl_type, ctrl.name, ctrl.id);
+                // let ctrl_val = dev.control(ctrl.id).(|e| format!("{}", e))?.value;
+                let ctrl_val = match dev.control(ctrl.id) {
+                    Ok(ctrl) => {
+                        ctrl.value
+                    },
+                    _ => {
+                        println!("Could not get control value");
+                        ControlValue::None
+                    },
+                };
+                    
+                    
+                println!("Unsupported control val: {:?}", ctrl_val);
                 let current_ctrl = DeviceControls::Control(Control{
                     id: ctrl.id,
                     name: ctrl.name.clone(),
