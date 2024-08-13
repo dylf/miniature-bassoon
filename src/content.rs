@@ -2,7 +2,12 @@ use crate::device;
 use crate::device::*;
 use crate::fl;
 use cosmic::widget;
-use cosmic::{theme, Element};
+use cosmic::{theme, Element, theme::Theme};
+use cosmic::theme::style::iced::Slider;
+use std::rc::Rc;
+use cosmic::iced_style::slider;
+use cosmic::iced_style::slider::Rail;
+use cosmic::iced_core::Color;
 use std::f32;
 
 pub struct Content {
@@ -15,10 +20,51 @@ pub enum Message {
     Boolean(u32, bool),
     Menu(u32, u32),
     Submit,
+    None,
 }
 
 pub enum Command {
     Save(String),
+}
+
+pub fn slider_style(disabled: bool) -> cosmic::theme::style::iced::Slider {
+    if !disabled {
+        return Slider::Standard;
+    }
+    let style = Rc::new(|theme: &Theme | {
+        let cosmic = theme.cosmic();
+        let disabled_color = cosmic.palette.neutral_3.into();
+        slider::Appearance {
+            rail: Rail {
+                colors: slider::RailBackground::Pair(
+                    disabled_color,
+                    disabled_color,
+                ),
+                width: 4.0,
+                border_radius: cosmic.corner_radii.radius_xs.into(),
+            },
+
+            handle: slider::Handle {
+                shape: slider::HandleShape::Rectangle {
+                    height: 20,
+                    width: 20,
+                    border_radius: cosmic.corner_radii.radius_m.into(),
+                },
+                color: disabled_color,
+                border_color: Color::TRANSPARENT,
+                border_width: 0.0,
+            },
+
+            breakpoint: slider::Breakpoint {
+                color: disabled_color,
+            },
+        }
+    });
+    Slider::Custom {
+        active: style.clone(),
+        hovered: style.clone(),
+        dragging: style.clone(),
+    }
 }
 
 impl Content {
@@ -52,8 +98,8 @@ impl Content {
                     groups += 1;
 
                     let form = form.push(widget::text::title4(group.name.clone()));
-                    let form = group.controls.iter().fold(form, |form, control| {
-                        match control {
+                    let form = group.controls.iter().fold(form, |form, control_t| {
+                        match control_t {
                             device::DeviceControls::Boolean(control) => {
                                 let val = control.value;
                                 let id = control.id;
@@ -64,8 +110,19 @@ impl Content {
                                 let max = control.max as f32;
                                 let val = control.value as f32;
                                 let id = control.id;
+                                let disabled = control_t.is_disabled();
                                 form.push(widget::text::text(control.name.clone()))
-                                    .push(widget::slider(min..=max, val, move |x| { Message::Slider(id, x)}))
+                                    .push(widget::slider(
+                                        min..=max, val,
+                                        move |x| {
+                                            if disabled {
+                                                return Message::None;
+                                            }
+                                            Message::Slider(id, x)
+                                        })
+                                        .step(control.step as f32)
+                                        .style(slider_style(disabled))
+                                    )
                             },
                             device::DeviceControls::Menu(control) => {
                                 let val = control.menu_items.iter().position(|x| x.id == (control.value.unwrap_or(0) as u32));
@@ -83,7 +140,7 @@ impl Content {
                                             "No Widget {}: {:?} - {:?}",
                                             control.name,
                                             control.control_type,
-                                            control.value
+                                            control
                                         )
                                     )
                                 )
@@ -112,6 +169,7 @@ impl Content {
 
     pub fn update(&mut self, dev: &VideoDevice, message: Message) -> Option<Command> {
         match message {
+            Message::None => None,
             Message::Submit => Some(Command::Save(self.input.clone())),
             Message::Slider(id, val) => {
                 set_control_val(dev, id, v4l::control::Value::Integer(val as i64)).unwrap();

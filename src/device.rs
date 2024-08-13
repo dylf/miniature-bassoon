@@ -26,7 +26,7 @@ pub struct Control {
     pub value: ControlValue,
     pub control_type: ControlType,
     pub menu_items: Option<Vec<(u32, String)>>,
-    // pub flags: Flags,
+    pub flags: v4l::control::Flags,
 }
 
 #[derive(Debug)]
@@ -38,6 +38,7 @@ pub struct IntegerControl {
     pub step: u64,
     pub default: i64,
     pub value: i64,
+    pub flags: v4l::control::Flags,
 }
 
 #[derive(Debug)]
@@ -46,6 +47,7 @@ pub struct BooleanControl {
     pub name: String,
     pub default: bool,
     pub value: bool,
+    pub flags: v4l::control::Flags,
 }
 
 #[derive(Debug)]
@@ -55,6 +57,7 @@ pub struct MenuControl {
     pub default: usize,
     pub value: Option<usize>,
     pub menu_items: Vec<MenuItem>,
+    pub flags: v4l::control::Flags,
 }
 
 #[derive(Debug, Clone)]
@@ -75,6 +78,7 @@ pub struct ButtonControl {
     pub name: String,
     pub default: usize,
     pub value: Option<bool>,
+    pub flags: v4l::control::Flags,
 }
 
 #[derive(Debug)]
@@ -82,6 +86,7 @@ pub struct ControlGroup {
     pub id: u32,
     pub name: String,
     pub controls: Vec<DeviceControls>,
+    pub flags: v4l::control::Flags,
 }
 
 #[derive(Debug)]
@@ -92,6 +97,25 @@ pub enum DeviceControls {
     Control(Control),
     Menu(MenuControl),
     Button(ButtonControl),
+}
+
+fn disabled_flags() -> v4l::control::Flags {
+    v4l::control::Flags::READ_ONLY |
+        v4l::control::Flags::DISABLED |
+        v4l::control::Flags::INACTIVE
+}
+
+impl DeviceControls {
+    pub fn is_disabled(&self) -> bool {
+        match self {
+            DeviceControls::ControlGroup(ctrl) => ctrl.flags.intersects(disabled_flags()),
+            DeviceControls::Integer(ctrl) => ctrl.flags.intersects(disabled_flags()),
+            DeviceControls::Boolean(ctrl) => ctrl.flags.intersects(disabled_flags()),
+            DeviceControls::Menu(ctrl) => ctrl.flags.intersects(disabled_flags()),
+            DeviceControls::Button(ctrl) => ctrl.flags.intersects(disabled_flags()),
+            _ => false,
+        }
+    }
 }
 
 pub fn get_devices() -> Vec<VideoDevice> {
@@ -153,6 +177,7 @@ pub fn get_device_controls(dev: &Device) -> Result<Vec<DeviceControls>, String> 
                     id: ctrl.id,
                     name: ctrl.name,
                     controls: Vec::new(),
+                    flags: ctrl.flags,
                 }));
             }
             ControlType::Integer => {
@@ -171,6 +196,7 @@ pub fn get_device_controls(dev: &Device) -> Result<Vec<DeviceControls>, String> 
                     step: ctrl.step,
                     default: ctrl.default,
                     value: ctrl_val,
+                    flags: ctrl.flags,
                 });
                 match device_controls.last_mut() {
                     Some(DeviceControls::ControlGroup(ControlGroup { controls, .. })) => {
@@ -192,6 +218,7 @@ pub fn get_device_controls(dev: &Device) -> Result<Vec<DeviceControls>, String> 
                     name: ctrl.name.clone(),
                     default: ctrl.default != 0,
                     value: ctrl_val,
+                    flags: ctrl.flags,
                 });
                 match device_controls.last_mut() {
                     Some(DeviceControls::ControlGroup(ControlGroup { controls, .. })) => {
@@ -231,6 +258,7 @@ pub fn get_device_controls(dev: &Device) -> Result<Vec<DeviceControls>, String> 
                     default: ctrl.default as usize,
                     value: Some(ctrl_val as usize),
                     menu_items,
+                    flags: ctrl.flags,
                 });
                     
                 match device_controls.last_mut() {
@@ -249,6 +277,7 @@ pub fn get_device_controls(dev: &Device) -> Result<Vec<DeviceControls>, String> 
                     name: ctrl.name.clone(),
                     default: ctrl.default as usize,
                     value: None,
+                    flags: ctrl.flags,
                 });
                     
                 match device_controls.last_mut() {
@@ -283,6 +312,7 @@ pub fn get_device_controls(dev: &Device) -> Result<Vec<DeviceControls>, String> 
                     value: ctrl_val,
                     control_type: ctrl_type,
                     menu_items: Some(vec![(0, "".to_string())]),
+                    flags: ctrl.flags,
                 });
 
                 match device_controls.last_mut() {
