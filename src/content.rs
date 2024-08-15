@@ -87,7 +87,7 @@ impl Content {
         let mut groups = 0;
         let form = form.push(widget::text::title2(String::from("Controls")))
             .push(widget::warning::warning(dev.capabilities.to_string()));
-        
+
         dev.controls.iter().fold(form, |form, control| {
             match control {
                 DeviceControls::ControlGroup(group) => {
@@ -164,7 +164,11 @@ impl Content {
                 }
                 _ => form.push(widget::text::text("No Widget"))
             }
-        }).into()
+        })
+            .push(widget::button(widget::text::text(fl!("save")))
+                .on_press(Message::Submit)
+                .padding([spacing.space_xxs, spacing.space_s])
+            ).into()
     }
 
     pub fn view<'a>(&'a self, dev: &'a VideoDevice) -> Element<Message> {
@@ -181,7 +185,7 @@ impl Content {
             Message::None => None,
             Message::Submit => {
                 println!("Submit: {}", self.input);
-                Some(Command::Save(self.input.clone()))
+                Some(Command::Save(dev.path.clone()))
             },
             Message::Slider(id, val) => {
                 set_control_val(dev, id, v4l::control::Value::Integer(val as i64)).unwrap();
@@ -193,6 +197,7 @@ impl Content {
             }
             Message::Menu(id, val) => {
                 set_control_val(dev, id, v4l::control::Value::Integer(val as i64)).unwrap();
+
                 None
             }
             Message::ButtonPress(id) => {
