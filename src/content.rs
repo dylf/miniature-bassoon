@@ -19,6 +19,7 @@ pub enum Message {
     Slider(u32, f32),
     Boolean(u32, bool),
     Menu(u32, u32),
+    ButtonPress(u32),
     Submit,
     None,
 }
@@ -98,8 +99,8 @@ impl Content {
                     groups += 1;
 
                     let form = form.push(widget::text::title4(group.name.clone()));
-                    let form = group.controls.iter().fold(form, |form, control_t| {
-                        match control_t {
+                    let form = group.controls.iter().fold(form, |form, control| {
+                        match control {
                             device::DeviceControls::Boolean(control) => {
                                 let val = control.value;
                                 let id = control.id;
@@ -110,7 +111,7 @@ impl Content {
                                 let max = control.max as f32;
                                 let val = control.value as f32;
                                 let id = control.id;
-                                let disabled = control_t.is_disabled();
+                                let disabled = control.is_disabled();
                                 form.push(widget::text::text(control.name.clone()))
                                     .push(widget::slider(
                                         min..=max, val,
@@ -132,6 +133,14 @@ impl Content {
                                         let item = control.menu_items[x].id;
                                         Message::Menu(id, item)
                                     }))
+                            },
+                            device::DeviceControls::Button(control) => {
+                                let id = control.id;
+                                form.push(
+                                    widget::button(widget::text::text(control.name.clone()))
+                                        .on_press(Message::ButtonPress(id))
+                                        .padding([spacing.space_xxs, spacing.space_s])
+                                )
                             },
                             device::DeviceControls::Control(control) => {
                                 form.push(
@@ -170,7 +179,10 @@ impl Content {
     pub fn update(&mut self, dev: &VideoDevice, message: Message) -> Option<Command> {
         match message {
             Message::None => None,
-            Message::Submit => Some(Command::Save(self.input.clone())),
+            Message::Submit => {
+                println!("Submit: {}", self.input);
+                Some(Command::Save(self.input.clone()))
+            },
             Message::Slider(id, val) => {
                 set_control_val(dev, id, v4l::control::Value::Integer(val as i64)).unwrap();
                 None
@@ -183,6 +195,10 @@ impl Content {
                 set_control_val(dev, id, v4l::control::Value::Integer(val as i64)).unwrap();
                 None
             }
+            Message::ButtonPress(id) => {
+                set_control_val(dev, id, v4l::control::Value::None).unwrap();
+                None
+            },
         }
     }
 }

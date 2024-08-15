@@ -6,6 +6,7 @@ use v4l::control::Type as ControlType;
 use v4l::control::Value as ControlValue;
 
 
+
 #[derive(Debug)]
 pub struct VideoDevice {
     pub name: String,
@@ -13,6 +14,17 @@ pub struct VideoDevice {
     pub index: usize,
     pub capabilities: v4l::capability::Capabilities,
     pub controls: Vec<DeviceControls>,
+}
+
+fn disabled_flags() -> v4l::control::Flags {
+    v4l::control::Flags::READ_ONLY |
+    v4l::control::Flags::DISABLED |
+    v4l::control::Flags::INACTIVE
+}
+
+
+pub trait ControlData {
+    fn is_disabled(&self) -> bool;
 }
 
 #[derive(Debug)]
@@ -29,6 +41,12 @@ pub struct Control {
     pub flags: v4l::control::Flags,
 }
 
+impl ControlData for Control {
+    fn is_disabled(&self) -> bool {
+        self.flags.intersects(disabled_flags())
+    }
+}
+
 #[derive(Debug)]
 pub struct IntegerControl {
     pub id: u32,
@@ -41,6 +59,12 @@ pub struct IntegerControl {
     pub flags: v4l::control::Flags,
 }
 
+impl ControlData for IntegerControl {
+    fn is_disabled(&self) -> bool {
+        self.flags.intersects(disabled_flags())
+    }
+}
+
 #[derive(Debug)]
 pub struct BooleanControl {
     pub id: u32,
@@ -48,6 +72,12 @@ pub struct BooleanControl {
     pub default: bool,
     pub value: bool,
     pub flags: v4l::control::Flags,
+}
+
+impl ControlData for BooleanControl {
+    fn is_disabled(&self) -> bool {
+        self.flags.intersects(disabled_flags())
+    }
 }
 
 #[derive(Debug)]
@@ -58,6 +88,12 @@ pub struct MenuControl {
     pub value: Option<usize>,
     pub menu_items: Vec<MenuItem>,
     pub flags: v4l::control::Flags,
+}
+
+impl ControlData for MenuControl {
+    fn is_disabled(&self) -> bool {
+        self.flags.intersects(disabled_flags())
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -81,6 +117,12 @@ pub struct ButtonControl {
     pub flags: v4l::control::Flags,
 }
 
+impl ControlData for ButtonControl {
+    fn is_disabled(&self) -> bool {
+        self.flags.intersects(disabled_flags())
+    }
+}
+
 #[derive(Debug)]
 pub struct ControlGroup {
     pub id: u32,
@@ -97,25 +139,6 @@ pub enum DeviceControls {
     Control(Control),
     Menu(MenuControl),
     Button(ButtonControl),
-}
-
-fn disabled_flags() -> v4l::control::Flags {
-    v4l::control::Flags::READ_ONLY |
-        v4l::control::Flags::DISABLED |
-        v4l::control::Flags::INACTIVE
-}
-
-impl DeviceControls {
-    pub fn is_disabled(&self) -> bool {
-        match self {
-            DeviceControls::ControlGroup(ctrl) => ctrl.flags.intersects(disabled_flags()),
-            DeviceControls::Integer(ctrl) => ctrl.flags.intersects(disabled_flags()),
-            DeviceControls::Boolean(ctrl) => ctrl.flags.intersects(disabled_flags()),
-            DeviceControls::Menu(ctrl) => ctrl.flags.intersects(disabled_flags()),
-            DeviceControls::Button(ctrl) => ctrl.flags.intersects(disabled_flags()),
-            _ => false,
-        }
-    }
 }
 
 pub fn get_devices() -> Vec<VideoDevice> {
@@ -269,9 +292,6 @@ pub fn get_device_controls(dev: &Device) -> Result<Vec<DeviceControls>, String> 
                 }
             },
             ControlType::Button => {
-                let ctrl_val: Option<bool> = match dev.control(ctrl.id).map_err(|e| format!("{}", e))?.value {
-                    _ => None,
-                };
                 let current_ctrl = DeviceControls::Button(ButtonControl {
                     id: ctrl.id,
                     name: ctrl.name.clone(),
