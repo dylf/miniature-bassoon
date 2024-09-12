@@ -128,7 +128,7 @@ impl Application for App {
                 self.content.view(dev).map(Message::Content)
             }
             _ => {
-                cosmic::widget::button::button("Main").on_press(Message::Content(content::Message::Submit)).into()
+                cosmic::widget::button::button("Main").on_press(Message::Content(content::Message::Save)).into()
             }
         }
     }
@@ -154,9 +154,9 @@ impl Application for App {
                 if let Some(dev) = dev {
                     let content_command = self.content.update(dev, message);
                     // TODO: Hacky way to update the controls reloading the dev
+                    // device.
                     self.set_device_from_nav();
                     if let Some(content::Command::Save(data)) = content_command {
-                        let _data_clone = data.clone();
                         return Command::perform
                             (save_value(data),
                                 |_| message::none() );

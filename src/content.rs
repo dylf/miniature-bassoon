@@ -1,6 +1,7 @@
 use crate::device;
 use crate::device::*;
 use crate::fl;
+use crate::storage::SaveData;
 use cosmic::widget;
 use cosmic::{theme, Element, theme::Theme};
 use cosmic::theme::style::iced::Slider;
@@ -20,12 +21,12 @@ pub enum Message {
     Boolean(u32, bool),
     Menu(u32, u32),
     ButtonPress(u32),
-    Submit,
+    Save,
     None,
 }
 
 pub enum Command {
-    Save(String),
+    Save(SaveData),
 }
 
 pub fn slider_style(disabled: bool) -> cosmic::theme::style::iced::Slider {
@@ -166,7 +167,7 @@ impl Content {
             }
         })
             .push(widget::button(widget::text::text(fl!("save")))
-                .on_press(Message::Submit)
+                .on_press(Message::Save)
                 .padding([spacing.space_xxs, spacing.space_s])
             ).into()
     }
@@ -183,9 +184,16 @@ impl Content {
     pub fn update(&mut self, dev: &VideoDevice, message: Message) -> Option<Command> {
         match message {
             Message::None => None,
-            Message::Submit => {
+            Message::Save => {
                 println!("Submit: {}", self.input);
-                Some(Command::Save(dev.path.clone()))
+                let save_data = get_device_save_data(dev);
+                match save_data {
+                    Ok(data) => Some(Command::Save(data)),
+                    Err(_) => {
+                        println!("No data to save");
+                        None
+                    }
+                }
             },
             Message::Slider(id, val) => {
                 set_control_val(dev, id, v4l::control::Value::Integer(val as i64)).unwrap();

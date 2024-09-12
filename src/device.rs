@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::convert::AsRef;
 
 use v4l::context;
@@ -5,6 +6,7 @@ use v4l::prelude::*;
 use v4l::control::Type as ControlType;
 use v4l::control::Value as ControlValue;
 
+use crate::storage::SaveData;
 
 
 #[derive(Debug)]
@@ -347,6 +349,32 @@ pub fn get_device_controls(dev: &Device) -> Result<Vec<DeviceControls>, String> 
     Ok(device_controls)
 }
 
+pub fn get_device_save_data(device: &VideoDevice) -> Result<SaveData, String> {
+    let dev = get_v4l_device_by_path(&device.path).map_err(|e| format!("{}", e))?;
+
+    let controls = dev.query_controls().map_err(|e| format!("{}", e))?;
+
+    let mut control_values = HashMap::new();
+    controls.iter().for_each(|ctrl| {
+        if let Ok(ctrl) = dev.control(ctrl.id).map_err(|e| format!("{}", e)) {
+                match ctrl.value {
+                    ControlValue::Integer(val) => {
+                        control_values.insert(ctrl.id, val as u32);
+                    } 
+                    ControlValue::Boolean(val) => {
+                        control_values.insert(ctrl.id, val as u32);
+                    }
+                    _ => ()
+                }
+        };
+    });
+    Ok(
+        SaveData {
+            device: device.path.clone(),
+            data: control_values,
+        }
+    )
+}
 
 pub fn set_control_val(dev: &VideoDevice, control_id: u32, value: ControlValue) -> Result<(), String> {
     let dev = get_v4l_device_by_path(&dev.path).map_err(|e| format!("{}", e))?;

@@ -9,10 +9,17 @@
         - [ ] Button?
 - [x] Figure out scrolling the viewport
     - [x] Figure out wonky slider stuff
-- [ ] Persist the settings
-- [ ] Reset to default settings
+- [x] Persist the settings
+    - [ ] Persist last state of the app?
+        - [ ] Is there a better way to identify a video device?
+            - Currently relying on the device path.
+        - [ ] Load settings on start
+    - [ ] Save settings named/profile?
+        - [ ] Profile picker
+- [ ] Reset to default control values
 - [ ] Close to systray
 - [ ] Show video feed
+- [ ] Other things like colorspace, resolution
 - [ ] GitHub actions
 - [ ] Test coverage
 - [ ] Update the README.md with correct info
