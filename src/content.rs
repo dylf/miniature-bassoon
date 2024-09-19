@@ -113,7 +113,7 @@ impl Content {
                                 let val = control.value as f32;
                                 let id = control.id;
                                 let disabled = control.is_disabled();
-                                form.push(widget::text::text(control.name.clone()))
+                                form.push(widget::text::text(format!("{}: {}", control.name, control.value)))
                                     .push(widget::slider(
                                         min..=max, val,
                                         move |x| {

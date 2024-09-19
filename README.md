@@ -1,21 +1,23 @@
 # COSMIC Application
 
 ## TODO
-- [x] Persist the settings
+- Controls
+    - [ ] Show control values
+    - [ ] Reset to default control values
+    - [ ] Other things like colorspace, resolution
+- Saving
     - [ ] Persist last state of the app?
-        - [ ] Is there a better way to identify a video device?
-            - Currently relying on the device path.
         - [ ] Load settings on start
     - [ ] Save settings named/profile?
         - [ ] Profile picker
-- [ ] Reset to default control values
-- [ ] Close to systray
-- [ ] Show video feed
-- [ ] Other things like colorspace, resolution
-- [ ] GitHub actions
-- [ ] Test coverage
-- [ ] Update the README.md with correct info
-- [ ] Distribution stuff
+- App
+    - [ ] Close to systray
+    - [ ] Show video feed
+- Project
+    - [ ] GitHub actions
+    - [ ] Test coverage
+    - [ ] Update the README.md with correct info
+    - [ ] Distribution stuff
 
 ## Install
 
