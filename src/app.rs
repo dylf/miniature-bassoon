@@ -4,7 +4,7 @@ use std::collections::HashMap;
 
 use crate::content::{self, Content};
 use crate::device::*;
-use crate::storage::save_value;
+use crate::storage::{get_save_filename, save_device_state};
 use crate::fl;
 use cosmic::app::{message, Command, Core};
 use cosmic::iced::Alignment;
@@ -153,13 +153,18 @@ impl Application for App {
                 let dev = &self.selected_device;
                 if let Some(dev) = dev {
                     let content_command = self.content.update(dev, message);
-                    // TODO: Hacky way to update the controls reloading the dev
-                    // device.
                     self.set_device_from_nav();
-                    if let Some(content::Command::Save(data)) = content_command {
-                        return Command::perform
-                            (save_value(data),
-                                |_| message::none() );
+                    let dev = self.selected_device.as_ref().unwrap();
+                    if let Some(content::Command::Save) = content_command {
+                        let save_data = get_device_save_data(dev);
+                        if let Ok(save_data) = save_data {
+                            let filename = get_save_filename(dev);
+                            return Command::perform
+                                (save_device_state(filename, save_data),
+                                    |_| message::none() );
+                        } else {
+                            return Command::none();
+                        }
                     };
                 }
             }

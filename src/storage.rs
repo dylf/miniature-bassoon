@@ -3,20 +3,28 @@ use std::io::Write;
 use xdg::BaseDirectories;
 use std::collections::HashMap;
 
+use crate::device::VideoDevice;
+
 #[derive(Debug)]
 pub struct SaveData {
-    pub device: String,
-    pub data: HashMap<u32, u32>,
+    pub controls: HashMap<u32, u32>,
+    // TODO: Profile name.
+    // Capture stuff - resolution, format, etc.
 }
 
-pub async fn save_value(data: SaveData) -> std::io::Result<()> {
-    println!("Saving data: {:?}", data);
-    let xdg_dirs = BaseDirectories::with_prefix("cosmic-cam").unwrap();
-    let data_path = xdg_dirs.place_data_file("last").unwrap();
+pub fn get_save_filename(device: &VideoDevice) -> String {
+    let device_name = device.name.replace(' ', "_");
+    let usb_bus = device.capabilities.bus.clone();
+    format!("{}-{}.cfg", device_name, usb_bus)
+}
 
+pub async fn save_device_state(filename: String, save_data: SaveData) -> std::io::Result<()> {
+    let xdg_dirs = BaseDirectories::with_prefix("cosmic-cam").unwrap();
+    let data_path = xdg_dirs.place_data_file(filename).unwrap();
+    
+    // TODO: Serialize the save data.
     let mut file = File::create(data_path)?;
-    file.write_fmt(format_args!("device={:?}\n", data.device))?;
-    for (key, value) in data.data.iter() {
+    for (key, value) in save_data.controls.iter() {
         file.write_fmt(format_args!("{}={}\n", key, value))?;
     }
     Ok(())

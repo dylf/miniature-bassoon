@@ -1,14 +1,6 @@
 # COSMIC Application
 
 ## TODO
-- [x] Send control info to the device
-    - [x] Handle the device better, store a ref in the app state?
-    - [ ] Handle other control types
-        - [x] Bool
-        - [x] Menu
-        - [ ] Button?
-- [x] Figure out scrolling the viewport
-    - [x] Figure out wonky slider stuff
 - [x] Persist the settings
     - [ ] Persist last state of the app?
         - [ ] Is there a better way to identify a video device?

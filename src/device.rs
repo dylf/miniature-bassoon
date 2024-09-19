@@ -370,8 +370,7 @@ pub fn get_device_save_data(device: &VideoDevice) -> Result<SaveData, String> {
     });
     Ok(
         SaveData {
-            device: device.path.clone(),
-            data: control_values,
+            controls: control_values,
         }
     )
 }

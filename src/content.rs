@@ -26,7 +26,7 @@ pub enum Message {
 }
 
 pub enum Command {
-    Save(SaveData),
+    Save,
 }
 
 pub fn slider_style(disabled: bool) -> cosmic::theme::style::iced::Slider {
@@ -184,17 +184,7 @@ impl Content {
     pub fn update(&mut self, dev: &VideoDevice, message: Message) -> Option<Command> {
         match message {
             Message::None => None,
-            Message::Save => {
-                println!("Submit: {}", self.input);
-                let save_data = get_device_save_data(dev);
-                match save_data {
-                    Ok(data) => Some(Command::Save(data)),
-                    Err(_) => {
-                        println!("No data to save");
-                        None
-                    }
-                }
-            },
+            Message::Save => Some(Command::Save),
             Message::Slider(id, val) => {
                 set_control_val(dev, id, v4l::control::Value::Integer(val as i64)).unwrap();
                 None
