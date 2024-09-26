@@ -2,8 +2,9 @@
 
 ## TODO
 - Controls
-    - [ ] Show control values
-    - [ ] Reset to default control values
+    - [x] Show control values
+    - [x] Reset to default control values
+        - [ ] Icon button?
     - [ ] Other things like colorspace, resolution
 - Saving
     - [ ] Persist last state of the app?

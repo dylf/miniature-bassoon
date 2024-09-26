@@ -1,5 +1,5 @@
-name := 'cosmic-app-template'
-export APPID := 'com.example.CosmicAppTemplate'
+name := 'cosmic-cam'
+export APPID := 'com.github.cosmic-cam'
 
 rootdir := ''
 prefix := '/usr'

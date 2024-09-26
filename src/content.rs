@@ -111,6 +111,7 @@ impl Content {
                                 let min = control.min as f32;
                                 let max = control.max as f32;
                                 let val = control.value as f32;
+                                let default = control.default as f32;
                                 let id = control.id;
                                 let disabled = control.is_disabled();
                                 form.push(widget::text::text(format!("{}: {}", control.name, control.value)))
@@ -124,6 +125,17 @@ impl Content {
                                         })
                                         .step(control.step as f32)
                                         .style(slider_style(disabled))
+                                    )
+                                    .push(
+                                        widget::tooltip(
+                                        widget::button::icon(widget::icon::from_svg_bytes(
+                                            &include_bytes!("../res/icons/reset.svg")
+                                            [..],
+                                        ))
+                                        .on_press(Message::Slider(id, default)),
+                                        fl!("reset-control"),
+                                        widget::tooltip::Position::Bottom,
+                                        )
                                     )
                             },
                             device::DeviceControls::Menu(control) => {
@@ -169,7 +181,8 @@ impl Content {
             .push(widget::button(widget::text::text(fl!("save")))
                 .on_press(Message::Save)
                 .padding([spacing.space_xxs, spacing.space_s])
-            ).into()
+            )
+            .into()
     }
 
     pub fn view<'a>(&'a self, dev: &'a VideoDevice) -> Element<Message> {
