@@ -1,7 +1,8 @@
 use crate::device;
 use crate::device::*;
 use crate::fl;
-use crate::storage::SaveData;
+use crate::widgets;
+use cosmic::iced::Alignment;
 use cosmic::widget;
 use cosmic::{theme, Element, theme::Theme};
 use cosmic::theme::style::iced::Slider;
@@ -114,8 +115,16 @@ impl Content {
                                 let default = control.default as f32;
                                 let id = control.id;
                                 let disabled = control.is_disabled();
-                                form.push(widget::text::text(format!("{}: {}", control.name, control.value)))
-                                    .push(widget::slider(
+                                form.push(
+                                    widget::row()
+                                        .align_items(Alignment::Center)
+                                        .spacing(spacing.space_s)
+                                        .push(
+                                            widget::text::text(format!("{}: {}", control.name, control.value))
+                                        ).push(
+                                            widgets::reset_button(Message::Slider(id, default), fl!("reset-control"))
+                                        )
+                                    ).push(widget::slider(
                                         min..=max, val,
                                         move |x| {
                                             if disabled {
@@ -125,17 +134,6 @@ impl Content {
                                         })
                                         .step(control.step as f32)
                                         .style(slider_style(disabled))
-                                    )
-                                    .push(
-                                        widget::tooltip(
-                                        widget::button::icon(widget::icon::from_svg_bytes(
-                                            &include_bytes!("../res/icons/reset.svg")
-                                            [..],
-                                        ))
-                                        .on_press(Message::Slider(id, default)),
-                                        fl!("reset-control"),
-                                        widget::tooltip::Position::Bottom,
-                                        )
                                     )
                             },
                             device::DeviceControls::Menu(control) => {

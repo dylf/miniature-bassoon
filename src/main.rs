@@ -7,6 +7,7 @@ mod content;
 mod core;
 mod device;
 mod storage;
+mod widgets;
 
 /// The `cosmic::app::run()` function is the starting point of your application.
 /// It takes two arguments:
