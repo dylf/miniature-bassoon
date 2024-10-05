@@ -91,7 +91,7 @@ impl Application for App {
             nav.insert()
                 .text(name)
                 .data::<Page>(Page::VideoDeviceForm(device.path.clone()))
-                .icon(icon::from_name("applications-science-symbolic"))
+                .icon(icon::from_name("camera-web-symbolic"))
                 .activate();
         });
 
