@@ -1,7 +1,7 @@
-app-title = Miniature Bassoon
 about = About
 view = View
-welcome = Welcome to Miniature Bassoon! 
+app-title = Cosmic Cam
+welcome = Cosmic Cam
 save = Save
 device-load-failed = Failed to load the device
 reset-control = Reset to default

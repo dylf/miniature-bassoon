@@ -4,14 +4,18 @@
 - Controls
     - [x] Show control values
     - [x] Reset to default control values
-        - [ ] Icon button?
+        - [x] Icon button?
+        - [x] Disable if value is default / control is disabled
+        - [ ] Reset all
     - [ ] Other things like colorspace, resolution
+        - This might be requested by application?
 - Saving
     - [ ] Persist last state of the app?
         - [ ] Load settings on start
     - [ ] Save settings named/profile?
         - [ ] Profile picker
 - App
+    - [ ] App settings
     - [ ] Close to systray
     - [ ] Show video feed
 - Project

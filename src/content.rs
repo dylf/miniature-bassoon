@@ -106,7 +106,24 @@ impl Content {
                             device::DeviceControls::Boolean(control) => {
                                 let val = control.value;
                                 let id = control.id;
-                                form.push(widget::toggler(control.name.clone(), val, move |x| { Message::Boolean(id, x)}))
+                                let default = control.default;
+                                let disabled = control.is_disabled();
+                                form.push(
+                                    widget::row()
+                                        .align_items(Alignment::Center)
+                                        .spacing(spacing.space_s)
+                                        .push(
+                                            widget::toggler(
+                                                control.name.clone(),
+                                                val,
+                                                move |x| {
+                                                    Message::Boolean(id, x)
+                                                }
+                                            )
+                                        ).push(
+                                            widgets::reset_button(Message::Boolean(id, default), fl!("reset-control"), disabled || default == val)
+                                        )
+                                )
                             }
                             device::DeviceControls::Integer(control) => {
                                 let min = control.min as f32;
@@ -122,7 +139,7 @@ impl Content {
                                         .push(
                                             widget::text::text(format!("{}: {}", control.name, control.value))
                                         ).push(
-                                            widgets::reset_button(Message::Slider(id, default), fl!("reset-control"))
+                                            widgets::reset_button(Message::Slider(id, default), fl!("reset-control"), disabled || default == val)
                                         )
                                     ).push(widget::slider(
                                         min..=max, val,
@@ -138,8 +155,24 @@ impl Content {
                             },
                             device::DeviceControls::Menu(control) => {
                                 let val = control.menu_items.iter().position(|x| x.id == (control.value.unwrap_or(0) as u32));
+                                let default = control.default as u32;
+                                let ctrl_val = control.value.unwrap_or(0) as u32;
+                                let disabled = control.is_disabled();
                                 let id = control.id;
-                                form.push(widget::text::text(control.name.clone()))
+                                form.push(
+                                    widget::row()
+                                        .align_items(Alignment::Center)
+                                        .spacing(spacing.space_s)
+                                        .push(
+                                            widget::text::text(control.name.clone())
+                                        ).push(
+                                            widgets::reset_button(
+                                                Message::Menu(id, default),
+                                                fl!("reset-control"),
+                                                disabled || default == ctrl_val
+                                            )
+                                        )
+                                    )
                                     .push(widget::dropdown(&control.menu_items, val, move |x| {
                                         let item = control.menu_items[x].id;
                                         Message::Menu(id, item)
