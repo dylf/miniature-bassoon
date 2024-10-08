@@ -85,10 +85,19 @@ impl Content {
         let spacing = theme::active().cosmic().spacing;
         let form = widget::column()
             .padding([0, spacing.space_s, 0, 0])
-            .spacing(spacing.space_xxs);
+            .spacing(spacing.space_xxs)
+            .push(widget::text::title2(dev.name.clone()))
+            .push(
+                widget::row()
+                    .push(
+                        widget::button::standard(
+                            fl!("show-device-info")
+                        )
+                    )
+                // widget::warning::warning(dev.capabilities.to_string())
+            );
         let mut groups = 0;
-        let form = form.push(widget::text::title2(String::from("Controls")))
-            .push(widget::warning::warning(dev.capabilities.to_string()));
+        let form = form.push(widget::text::title3(String::from("Controls")));
 
         dev.controls.iter().fold(form, |form, control| {
             match control {

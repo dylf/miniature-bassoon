@@ -2,11 +2,11 @@
 
 ## TODO
 - Controls
-    - [x] Show control values
-    - [x] Reset to default control values
-        - [x] Icon button?
-        - [x] Disable if value is default / control is disabled
-        - [ ] Reset all
+    - [ ] Top area
+        - [ ] Show device info
+        - [ ] Reset all controls
+        - [ ] Select profile
+        - [ ] Show feed
     - [ ] Other things like colorspace, resolution
         - This might be requested by application?
 - Saving
