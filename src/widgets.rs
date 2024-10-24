@@ -9,7 +9,7 @@ pub fn reset_button<'a>(
     is_disabled: bool,
 ) -> Element<'a, Message> {
     if is_disabled {
-       return widget::horizontal_space(0.0).into();
+       return widget::horizontal_space().into();
     }
     let icon = widget::icon::from_name("object-rotate-left-symbolic");
     widget::button::icon(icon)

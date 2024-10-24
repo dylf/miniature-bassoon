@@ -5,15 +5,19 @@ use crate::widgets;
 use cosmic::iced::Alignment;
 use cosmic::widget;
 use cosmic::{theme, Element, theme::Theme};
-use cosmic::theme::style::iced::Slider;
-use std::rc::Rc;
-use cosmic::iced_style::slider;
-use cosmic::iced_style::slider::Rail;
-use cosmic::iced_core::Color;
+// use cosmic::theme::style::iced::Slider;
+// use std::rc::Rc;
+// use cosmic::iced_core::Color;
 use std::f32;
 
 pub struct Content {
-    input: String,
+    open_dialog: OpenDialog,
+}
+
+#[derive(Debug, Clone)]
+pub enum OpenDialog {
+    None,
+    Info,
 }
 
 #[derive(Debug, Clone)]
@@ -22,63 +26,83 @@ pub enum Message {
     Boolean(u32, bool),
     Menu(u32, u32),
     ButtonPress(u32),
+    OpenDialog(OpenDialog),
     Save,
     None,
 }
 
-pub enum Command {
+pub enum Task {
     Save,
 }
 
-pub fn slider_style(disabled: bool) -> cosmic::theme::style::iced::Slider {
-    if !disabled {
-        return Slider::Standard;
-    }
-    let style = Rc::new(|theme: &Theme | {
-        let cosmic = theme.cosmic();
-        let disabled_color = cosmic.palette.neutral_3.into();
-        slider::Appearance {
-            rail: Rail {
-                colors: slider::RailBackground::Pair(
-                    disabled_color,
-                    disabled_color,
-                ),
-                width: 4.0,
-                border_radius: cosmic.corner_radii.radius_xs.into(),
-            },
-
-            handle: slider::Handle {
-                shape: slider::HandleShape::Rectangle {
-                    height: 20,
-                    width: 20,
-                    border_radius: cosmic.corner_radii.radius_m.into(),
-                },
-                color: disabled_color,
-                border_color: Color::TRANSPARENT,
-                border_width: 0.0,
-            },
-
-            breakpoint: slider::Breakpoint {
-                color: disabled_color,
-            },
-        }
-    });
-    Slider::Custom {
-        active: style.clone(),
-        hovered: style.clone(),
-        dragging: style.clone(),
-    }
-}
+// pub fn slider_style(disabled: bool) -> cosmic::theme::style::iced::Slider {
+//     if !disabled {
+//         return Slider::Standard;
+//     }
+//     let style = Rc::new(|theme: &Theme | {
+//         let cosmic = theme.cosmic();
+//         let disabled_color = cosmic.palette.neutral_3.into();
+//         slider::Appearance {
+//             rail: Rail {
+//                 colors: slider::RailBackground::Pair(
+//                     disabled_color,
+//                     disabled_color,
+//                 ),
+//                 width: 4.0,
+//                 border_radius: cosmic.corner_radii.radius_xs.into(),
+//             },
+//
+//             handle: slider::Handle {
+//                 shape: slider::HandleShape::Rectangle {
+//                     height: 20,
+//                     width: 20,
+//                     border_radius: cosmic.corner_radii.radius_m.into(),
+//                 },
+//                 color: disabled_color,
+//                 border_color: Color::TRANSPARENT,
+//                 border_width: 0.0,
+//             },
+//
+//             breakpoint: slider::Breakpoint {
+//                 color: disabled_color,
+//             },
+//         }
+//     });
+//     Slider::Custom {
+//         active: style.clone(),
+//         hovered: style.clone(),
+//         dragging: style.clone(),
+//     }
+// }
 
 impl Content {
     pub fn new() -> Self {
         Self {
-            input: String::new(),
+            open_dialog: OpenDialog::None,
         }
     }
 
     fn title(&self) -> Element<Message> {
         widget::text::title1(fl!("welcome")).into()
+    }
+
+    fn dialog_button<'a>(
+        &self,
+        button_label: impl Into<std::borrow::Cow<'a, str>>,
+        dialog_content: impl Into<std::borrow::Cow<'a, str>>,
+    ) -> Element<'a, Message> {
+        let mut popover = widget::popover(
+            widget::button::standard(
+                button_label
+            ).on_press(Message::OpenDialog(OpenDialog::Info))
+        );
+        if let OpenDialog::Info = self.open_dialog {
+            popover = popover.popup(
+                widget::dialog(dialog_content)
+            )
+            .on_close(Message::OpenDialog(OpenDialog::None));
+        }
+        popover.into()
     }
 
     fn device_controls<'a>(&self, dev: &'a VideoDevice) -> Element<'a, Message> {
@@ -90,11 +114,19 @@ impl Content {
             .push(
                 widget::row()
                     .push(
-                        widget::button::standard(
-                            fl!("show-device-info")
+                        self.dialog_button(
+                            fl!("show-device-info"),
+                            dev.capabilities.to_string()
                         )
+                        // widget::popover(
+                        //     widget::button::standard(
+                        //         fl!("show-device-info")
+                        //     )
+                        // ).popup(
+                        //     widget::dialog(dev.capabilities.to_string())
+                        //     // widget::dialog(fl!("show-device-info"))
+                        // )
                     )
-                // widget::warning::warning(dev.capabilities.to_string())
             );
         let mut groups = 0;
         let form = form.push(widget::text::title3(String::from("Controls")));
@@ -119,16 +151,16 @@ impl Content {
                                 let disabled = control.is_disabled();
                                 form.push(
                                     widget::row()
-                                        .align_items(Alignment::Center)
+                                        .align_y(Alignment::Center)
                                         .spacing(spacing.space_s)
                                         .push(
-                                            widget::toggler(
-                                                control.name.clone(),
-                                                val,
-                                                move |x| {
-                                                    Message::Boolean(id, x)
-                                                }
-                                            )
+                                            widget::toggler(val)
+                                                .label(control.name.clone())
+                                                .on_toggle(
+                                                    move |x| {
+                                                        Message::Boolean(id, x)
+                                                    }
+                                                )
                                         ).push(
                                             widgets::reset_button(Message::Boolean(id, default), fl!("reset-control"), disabled || default == val)
                                         )
@@ -143,7 +175,7 @@ impl Content {
                                 let disabled = control.is_disabled();
                                 form.push(
                                     widget::row()
-                                        .align_items(Alignment::Center)
+                                        .align_y(Alignment::Center)
                                         .spacing(spacing.space_s)
                                         .push(
                                             widget::text::text(format!("{}: {}", control.name, control.value))
@@ -159,7 +191,7 @@ impl Content {
                                             Message::Slider(id, x)
                                         })
                                         .step(control.step as f32)
-                                        .style(slider_style(disabled))
+                                        // .style(slider_style(disabled))
                                     )
                             },
                             device::DeviceControls::Menu(control) => {
@@ -170,7 +202,7 @@ impl Content {
                                 let id = control.id;
                                 form.push(
                                     widget::row()
-                                        .align_items(Alignment::Center)
+                                        .align_y(Alignment::Center)
                                         .spacing(spacing.space_s)
                                         .push(
                                             widget::text::text(control.name.clone())
@@ -190,7 +222,7 @@ impl Content {
                             device::DeviceControls::Button(control) => {
                                 let id = control.id;
                                 form.push(
-                                    widget::button(widget::text::text(control.name.clone()))
+                                    widget::button::standard(control.name.clone())
                                         .on_press(Message::ButtonPress(id))
                                         .padding([spacing.space_xxs, spacing.space_s])
                                 )
@@ -218,7 +250,7 @@ impl Content {
                 _ => form.push(widget::text::text("No Widget"))
             }
         })
-            .push(widget::button(widget::text::text(fl!("save")))
+            .push(widget::button::standard(fl!("save"))
                 .on_press(Message::Save)
                 .padding([spacing.space_xxs, spacing.space_s])
             )
@@ -234,10 +266,10 @@ impl Content {
         ).into()
     }
 
-    pub fn update(&mut self, dev: &VideoDevice, message: Message) -> Option<Command> {
+    pub fn update(&mut self, dev: &VideoDevice, message: Message) -> Option<Task> {
         match message {
             Message::None => None,
-            Message::Save => Some(Command::Save),
+            Message::Save => Some(Task::Save),
             Message::Slider(id, val) => {
                 set_control_val(dev, id, v4l::control::Value::Integer(val as i64)).unwrap();
                 None
@@ -253,6 +285,10 @@ impl Content {
             }
             Message::ButtonPress(id) => {
                 set_control_val(dev, id, v4l::control::Value::None).unwrap();
+                None
+            },
+            Message::OpenDialog(dialog) => {
+                self.open_dialog = dialog;
                 None
             },
         }

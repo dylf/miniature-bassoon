@@ -4,9 +4,10 @@ use std::collections::HashMap;
 
 use crate::content::{self, Content};
 use crate::device::*;
+use crate::settings;
 use crate::storage::{get_save_filename, save_device_state};
 use crate::fl;
-use cosmic::app::{message, Command, Core};
+use cosmic::app::{message, Task, Core};
 use cosmic::iced::Alignment;
 use cosmic::widget::{self, icon, menu, nav_bar};
 use cosmic::{cosmic_theme, theme, Application, ApplicationExt, Element};
@@ -27,6 +28,7 @@ pub enum Message {
     Content(content::Message),
     LaunchUrl(String),
     ToggleContextPage(ContextPage),
+    Setting(settings::Message),
 }
 
 pub enum Page {
@@ -37,12 +39,14 @@ pub enum Page {
 pub enum ContextPage {
     #[default]
     About,
+    Settings
 }
 
 impl ContextPage {
     fn title(&self) -> String {
         match self {
-            Self::About => fl!("about"),
+            Self::About => fl!("menu-about"),
+            Self::Settings => fl!("menu-settings"),
         }
     }
 }
@@ -50,6 +54,7 @@ impl ContextPage {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum MenuAction {
     About,
+    ToggleSettings,
 }
 
 impl menu::action::MenuAction for MenuAction {
@@ -58,6 +63,7 @@ impl menu::action::MenuAction for MenuAction {
     fn message(&self) -> Self::Message {
         match self {
             MenuAction::About => Message::ToggleContextPage(ContextPage::About),
+            MenuAction::ToggleSettings => Message::ToggleContextPage(ContextPage::Settings),
         }
     }
 }
@@ -83,7 +89,7 @@ impl Application for App {
         Some(&self.nav)
     }
 
-    fn init(core: Core, _flags: Self::Flags) -> (Self, Command<Self::Message>) {
+    fn init(core: Core, _flags: Self::Flags) -> (Self, Task<Self::Message>) {
         let mut nav = nav_bar::Model::default();
 
         get_devices().iter().for_each(|device| {
@@ -115,9 +121,16 @@ impl Application for App {
             menu::root(fl!("view")),
             menu::items(
                 &self.key_binds,
-                vec![menu::Item::Button(fl!("about"), MenuAction::About)],
-            ),
-        )]);
+                vec![
+                    menu::Item::Button(fl!("menu-settings"), MenuAction::ToggleSettings),
+                    menu::Item::Divider,
+                    menu::Item::Button(fl!("menu-about"), MenuAction::About),
+                ]
+            )
+        )])
+        .item_width(menu::ItemWidth::Uniform(320))
+        .item_height(menu::ItemHeight::Dynamic(40))
+        .spacing(4.0);
 
         vec![menu_bar.into()]
     }
@@ -128,12 +141,13 @@ impl Application for App {
                 self.content.view(dev).map(Message::Content)
             }
             _ => {
-                cosmic::widget::button::button("Main").on_press(Message::Content(content::Message::Save)).into()
+                cosmic::widget::button::standard("Main")
+                    .on_press(Message::Content(content::Message::Save)).into()
             }
         }
     }
 
-    fn update(&mut self, message: Self::Message) -> Command<Self::Message> {
+    fn update(&mut self, message: Self::Message) -> Task<Self::Message> {
         match message {
             Message::LaunchUrl(url) => {
                 let _result = open::that_detached(url);
@@ -155,21 +169,27 @@ impl Application for App {
                     let content_command = self.content.update(dev, message);
                     self.set_device_from_nav();
                     let dev = self.selected_device.as_ref().unwrap();
-                    if let Some(content::Command::Save) = content_command {
+                    if let Some(content::Task::Save) = content_command {
                         let save_data = get_device_save_data(dev);
                         if let Ok(save_data) = save_data {
                             let filename = get_save_filename(dev);
-                            return Command::perform
+                            return Task::perform
                                 (save_device_state(filename, save_data),
                                     |_| message::none() );
                         } else {
-                            return Command::none();
+                            return Task::none();
                         }
                     };
                 }
             }
+            Message::Setting(message) => {
+                let setting_command = self.update_settings(message);
+                if let Some(settings::Task::Save) = setting_command {
+                    return Task::none();
+                }
+            }
         }
-        Command::none()
+        Task::none()
     }
 
     fn context_drawer(&self) -> Option<Element<Self::Message>> {
@@ -179,10 +199,11 @@ impl Application for App {
 
         Some(match self.context_page {
             ContextPage::About => self.about(),
+            ContextPage::Settings => self.settings(),
         })
     }
 
-    fn on_nav_select(&mut self, id: nav_bar::Id) -> Command<Self::Message> {
+    fn on_nav_select(&mut self, id: nav_bar::Id) -> Task<Self::Message> {
         self.nav.activate(id);
         self.set_device_from_nav();
         self.update_titles()
@@ -220,12 +241,12 @@ impl App {
             .push(icon)
             .push(title)
             .push(link)
-            .align_items(Alignment::Center)
+            .align_x(Alignment::Center)
             .spacing(space_xxs)
             .into()
     }
 
-    pub fn update_titles(&mut self) -> Command<Message> {
+    pub fn update_titles(&mut self) -> Task<Message> {
         let mut window_title = fl!("app-title");
         let mut header_title = String::new();
 

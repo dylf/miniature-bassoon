@@ -8,6 +8,7 @@ mod core;
 mod device;
 mod storage;
 mod widgets;
+mod settings;
 
 /// The `cosmic::app::run()` function is the starting point of your application.
 /// It takes two arguments:
@@ -15,6 +16,7 @@ mod widgets;
 /// - `()` is the flags that your app needs to use before it starts.
 ///  If your app does not need any flags, you can pass in `()`.
 fn main() -> cosmic::iced::Result {
-    let settings = cosmic::app::Settings::default();
+    let settings = cosmic::app::Settings::default()
+        .exit_on_close(false);
     cosmic::app::run::<App>(settings, ())
 }
