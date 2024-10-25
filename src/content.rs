@@ -4,10 +4,7 @@ use crate::fl;
 use crate::widgets;
 use cosmic::iced::Alignment;
 use cosmic::widget;
-use cosmic::{theme, Element, theme::Theme};
-// use cosmic::theme::style::iced::Slider;
-// use std::rc::Rc;
-// use cosmic::iced_core::Color;
+use cosmic::{theme, Element};
 use std::f32;
 
 pub struct Content {
@@ -34,46 +31,6 @@ pub enum Message {
 pub enum Task {
     Save,
 }
-
-// pub fn slider_style(disabled: bool) -> cosmic::theme::style::iced::Slider {
-//     if !disabled {
-//         return Slider::Standard;
-//     }
-//     let style = Rc::new(|theme: &Theme | {
-//         let cosmic = theme.cosmic();
-//         let disabled_color = cosmic.palette.neutral_3.into();
-//         slider::Appearance {
-//             rail: Rail {
-//                 colors: slider::RailBackground::Pair(
-//                     disabled_color,
-//                     disabled_color,
-//                 ),
-//                 width: 4.0,
-//                 border_radius: cosmic.corner_radii.radius_xs.into(),
-//             },
-//
-//             handle: slider::Handle {
-//                 shape: slider::HandleShape::Rectangle {
-//                     height: 20,
-//                     width: 20,
-//                     border_radius: cosmic.corner_radii.radius_m.into(),
-//                 },
-//                 color: disabled_color,
-//                 border_color: Color::TRANSPARENT,
-//                 border_width: 0.0,
-//             },
-//
-//             breakpoint: slider::Breakpoint {
-//                 color: disabled_color,
-//             },
-//         }
-//     });
-//     Slider::Custom {
-//         active: style.clone(),
-//         hovered: style.clone(),
-//         dragging: style.clone(),
-//     }
-// }
 
 impl Content {
     pub fn new() -> Self {
@@ -182,16 +139,18 @@ impl Content {
                                         ).push(
                                             widgets::reset_button(Message::Slider(id, default), fl!("reset-control"), disabled || default == val)
                                         )
-                                    ).push(widget::slider(
-                                        min..=max, val,
+                                    ).push(crate::widgets::custom_slider(
+                                        min,
+                                        max,
+                                        val,
+                                        control.step as f32,
+                                        disabled,
                                         move |x| {
                                             if disabled {
                                                 return Message::None;
                                             }
                                             Message::Slider(id, x)
                                         })
-                                        .step(control.step as f32)
-                                        // .style(slider_style(disabled))
                                     )
                             },
                             device::DeviceControls::Menu(control) => {
