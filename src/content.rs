@@ -55,7 +55,7 @@ impl Content {
         );
         if let OpenDialog::Info = self.open_dialog {
             popover = popover.popup(
-                widget::dialog(dialog_content)
+                widget::dialog().body(dialog_content)
             )
             .on_close(Message::OpenDialog(OpenDialog::None));
         }

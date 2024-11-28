@@ -7,7 +7,7 @@ use crate::device::*;
 use crate::settings;
 use crate::storage::{get_save_filename, save_device_state};
 use crate::fl;
-use cosmic::app::{message, Task, Core};
+use cosmic::app::{context_drawer, message, Task, Core};
 use cosmic::iced::Alignment;
 use cosmic::widget::{self, icon, menu, nav_bar};
 use cosmic::{cosmic_theme, theme, Application, ApplicationExt, Element};
@@ -101,6 +101,7 @@ impl Application for App {
                 .activate();
         });
 
+
         let mut app = App {
             core,
             context_page: ContextPage::default(),
@@ -116,15 +117,20 @@ impl Application for App {
         (app, command)
     }
 
+    fn on_app_exit(&mut self) -> Option<Self::Message> {
+        println!("Exiting...");
+        None
+    }
+
     fn header_start(&self) -> Vec<Element<Self::Message>> {
         let menu_bar = menu::bar(vec![menu::Tree::with_children(
             menu::root(fl!("view")),
             menu::items(
                 &self.key_binds,
                 vec![
-                    menu::Item::Button(fl!("menu-settings"), MenuAction::ToggleSettings),
+                    menu::Item::Button(fl!("menu-settings"), None, MenuAction::ToggleSettings),
                     menu::Item::Divider,
-                    menu::Item::Button(fl!("menu-about"), MenuAction::About),
+                    menu::Item::Button(fl!("menu-about"), None, MenuAction::About),
                 ]
             )
         )])
@@ -160,8 +166,6 @@ impl Application for App {
                     self.context_page = context_page;
                     self.core.window.show_context = true;
                 }
-
-                self.set_context_title(context_page.title());
             }
             Message::Content(message) => {
                 let dev = &self.selected_device;
@@ -192,14 +196,20 @@ impl Application for App {
         Task::none()
     }
 
-    fn context_drawer(&self) -> Option<Element<Self::Message>> {
+    fn context_drawer(&self) -> Option<context_drawer::ContextDrawer<Self::Message>> {
         if !self.core.window.show_context {
             return None;
         }
 
         Some(match self.context_page {
-            ContextPage::About => self.about(),
-            ContextPage::Settings => self.settings(),
+            ContextPage::About => context_drawer::context_drawer(
+                self.about(),
+                Message::ToggleContextPage(ContextPage::About),
+            ).title(fl!("menu-about")),
+            ContextPage::Settings => context_drawer::context_drawer(
+                self.settings(),
+                Message::ToggleContextPage(ContextPage::Settings),
+            ).title(fl!("menu-settings")),
         })
     }
 
@@ -257,6 +267,10 @@ impl App {
         }
 
         self.set_header_title(header_title);
-        self.set_window_title(window_title)
+        if let Some(id) = self.core.main_window_id() {
+            self.set_window_title(window_title, id)
+        } else {
+            Task::none()
+        }
     }
 }
